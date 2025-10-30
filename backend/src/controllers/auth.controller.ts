@@ -3,9 +3,11 @@ import prisma from '../utils/prisma';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateToken } from '../utils/jwt';
 import { sendOTP, verifyOTP } from '../services/otp.service';
+import { sendPasswordResetEmail } from '../services/email.service';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -502,5 +504,158 @@ export const verifyLoginOTP = async (req: Request, res: Response) => {
       return res.status(503).json({ error: 'Database connection failed. Please try again later.' });
     }
     res.status(500).json({ error: 'OTP verification failed' });
+  }
+};
+
+// ========== FORGOT PASSWORD ==========
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'No account found with this email address.' });
+    }
+
+    // Generate 6-digit reset code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    // Hash the reset code for storage
+    const hashedResetCode = await hashPassword(resetCode);
+
+    // Update user with reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken: hashedResetCode,
+        resetTokenExpiry
+      }
+    });
+
+    // Send email with reset code
+    const emailResult = await sendPasswordResetEmail(email, resetCode, user.firstName);
+
+    if (!emailResult.success) {
+      return res.status(500).json({ error: 'Failed to send reset email' });
+    }
+
+    res.json({ message: 'Password reset code sent to your email!' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to process password reset request' });
+  }
+};
+
+export const verifyResetCode = async (req: Request, res: Response) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      return res.status(400).json({ error: 'Email and code are required' });
+    }
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user || !user.resetToken || !user.resetTokenExpiry) {
+      return res.status(400).json({ error: 'Invalid or expired reset code' });
+    }
+
+    // Check if reset token has expired
+    if (new Date() > user.resetTokenExpiry) {
+      // Clear expired token
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetToken: null,
+          resetTokenExpiry: null
+        }
+      });
+      return res.status(400).json({ error: 'Reset code has expired' });
+    }
+
+    // Verify the reset code
+    const isValidCode = await comparePassword(code, user.resetToken);
+
+    if (!isValidCode) {
+      return res.status(400).json({ error: 'Invalid reset code' });
+    }
+
+    res.json({ message: 'Reset code verified successfully' });
+  } catch (error) {
+    console.error('Verify reset code error:', error);
+    res.status(500).json({ error: 'Failed to verify reset code' });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ error: 'Email, code, and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user || !user.resetToken || !user.resetTokenExpiry) {
+      return res.status(400).json({ error: 'Invalid or expired reset code' });
+    }
+
+    // Check if reset token has expired
+    if (new Date() > user.resetTokenExpiry) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetToken: null,
+          resetTokenExpiry: null
+        }
+      });
+      return res.status(400).json({ error: 'Reset code has expired' });
+    }
+
+    // Verify the reset code
+    const isValidCode = await comparePassword(code, user.resetToken);
+
+    if (!isValidCode) {
+      return res.status(400).json({ error: 'Invalid reset code' });
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update password and clear reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null
+      }
+    });
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 };

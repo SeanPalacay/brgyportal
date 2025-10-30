@@ -212,6 +212,7 @@ export default function ForgotPassword() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Enter new password"
                     minLength={6}
+                    autoComplete="new-password"
                     required
                     autoFocus
                   />
@@ -228,6 +229,7 @@ export default function ForgotPassword() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"
                     minLength={6}
+                    autoComplete="new-password"
                     required
                   />
                 </div>

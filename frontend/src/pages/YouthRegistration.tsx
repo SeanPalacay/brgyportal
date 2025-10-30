@@ -111,10 +111,10 @@ export default function YouthRegistration() {
     middleName: '',
     suffix: '',
     purokZone: '',
-    barangay: '',
-    cityMunicipality: '',
-    province: '',
-    region: '',
+    barangay: 'Binitayan',
+    cityMunicipality: 'Daraga',
+    province: 'Albay',
+    region: 'Region V - Bicol Region',
     birthday: '',
     age: '',
     sex: '',
@@ -437,9 +437,9 @@ export default function YouthRegistration() {
                     <Label htmlFor="barangay">Barangay *</Label>
                     <Input
                       id="barangay"
-                      placeholder="e.g., Barangay San Jose"
                       value={formData.barangay}
-                      onChange={(e) => handleInputChange('barangay', e.target.value)}
+                      readOnly
+                      className="bg-muted cursor-not-allowed"
                       required
                     />
                   </div>
@@ -447,9 +447,9 @@ export default function YouthRegistration() {
                     <Label htmlFor="cityMunicipality">City/Municipality *</Label>
                     <Input
                       id="cityMunicipality"
-                      placeholder="e.g., Quezon City, Makati"
                       value={formData.cityMunicipality}
-                      onChange={(e) => handleInputChange('cityMunicipality', e.target.value)}
+                      readOnly
+                      className="bg-muted cursor-not-allowed"
                       required
                     />
                   </div>
@@ -457,29 +457,21 @@ export default function YouthRegistration() {
                     <Label htmlFor="province">Province *</Label>
                     <Input
                       id="province"
-                      placeholder="e.g., Metro Manila, Laguna"
                       value={formData.province}
-                      onChange={(e) => handleInputChange('province', e.target.value)}
+                      readOnly
+                      className="bg-muted cursor-not-allowed"
                       required
                     />
                   </div>
                   <div>
                     <Label htmlFor="region">Region *</Label>
-                    <Select
+                    <Input
+                      id="region"
                       value={formData.region}
-                      onValueChange={(value) => handleInputChange('region', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Region" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PHILIPPINE_REGIONS.map((region) => (
-                          <SelectItem key={region} value={region}>
-                            {region}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      readOnly
+                      className="bg-muted cursor-not-allowed"
+                      required
+                    />
                   </div>
                 </div>
               </div>

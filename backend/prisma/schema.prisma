@@ -147,6 +147,8 @@ model User {
   roles         Role[]        @relation("UserRoles") // Changed from UserRole[] enum
   status        AccountStatus @default(PENDING)
   otpEnabled    Boolean       @default(false)
+  resetToken    String?
+  resetTokenExpiry DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   
