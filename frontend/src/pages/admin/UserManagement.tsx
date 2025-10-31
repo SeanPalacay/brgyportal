@@ -696,7 +696,7 @@ export default function UserManagement() {
                             {user.proofOfResidency && (
                               <DropdownMenuItem onClick={() => {
                                 // Handle both Supabase URLs and local file paths
-                                let imageUrl = user.proofOfResidency;
+                                let imageUrl = user.proofOfResidency || '';
                                 if (!imageUrl.startsWith('http')) {
                                   imageUrl = `${BACKEND_BASE_URL}${imageUrl}`;
                                 }
@@ -863,7 +863,7 @@ export default function UserManagement() {
                                 size="sm"
                                 onClick={() => {
                                   // Handle both Supabase URLs and local file paths
-                                  let imageUrl = selectedUser.proofOfResidency;
+                                  let imageUrl = selectedUser.proofOfResidency || '';
                                   if (!imageUrl.startsWith('http')) {
                                     imageUrl = `${BACKEND_BASE_URL}${imageUrl}`;
                                   }
