@@ -49,6 +49,7 @@ router.get('/my-appointments', authenticate, getMyAppointments);
 
 // ========== IMMUNIZATION RECORDS ==========
 router.get('/immunization-records', authenticate, getImmunizationRecords);
+router.get('/immunization-records/my', authenticate, getMyImmunizationRecords);
 router.post('/immunization-records', authenticate, createImmunizationRecord);
 router.get('/my-immunization-records', authenticate, getMyImmunizationRecords);
 router.get('/immunization-schedule', authenticate, getImmunizationSchedule);
