@@ -1,16 +1,9 @@
-import { Resend } from 'resend';
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Gmail SMTP transporter as fallback
-const gmailTransporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD
-  }
-});
+// Initialize SendGrid with API key
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 const getEmailTemplate = (firstName: string, resetCode: string) => `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -58,41 +51,55 @@ const getEmailTemplate = (firstName: string, resetCode: string) => `
 
 export const sendPasswordResetEmail = async (email: string, resetCode: string, firstName: string) => {
   const htmlTemplate = getEmailTemplate(firstName, resetCode);
-  
-  // Try Resend first
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const { data, error } = await resend.emails.send({
-        from: 'Gabay Barangay <onboarding@resend.dev>',
-        to: [email],
-        subject: 'Password Reset Code - Gabay Barangay',
-        html: htmlTemplate,
-      });
 
-      if (!error) {
-        return { success: true, messageId: data?.id, provider: 'resend' };
-      }
-      console.log('Resend failed, trying Gmail:', error);
-    } catch (error) {
-      console.log('Resend error, trying Gmail:', error);
-    }
+  console.log('=== SendGrid Email Service ===');
+  console.log('Attempting to send password reset email to:', email);
+  console.log('SENDGRID_API_KEY configured:', !!process.env.SENDGRID_API_KEY);
+  console.log('SENDGRID_FROM_EMAIL configured:', !!process.env.SENDGRID_FROM_EMAIL);
+
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('SendGrid API key not configured!');
+    return { success: false, error: 'Email service not configured. Please contact administrator.' };
   }
 
-  // Fallback to Gmail SMTP
-  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
-    try {
-      const result = await gmailTransporter.sendMail({
-        from: `"Gabay Barangay" <${process.env.GMAIL_USER}>`,
-        to: email,
-        subject: 'Password Reset Code - Gabay Barangay',
-        html: htmlTemplate,
-      });
-      return { success: true, messageId: result.messageId, provider: 'gmail' };
-    } catch (error: any) {
-      console.error('Gmail SMTP error:', error);
-      return { success: false, error: 'Failed to send email via Gmail' };
-    }
+  if (!process.env.SENDGRID_FROM_EMAIL) {
+    console.error('SendGrid from email not configured!');
+    return { success: false, error: 'Email service not configured. Please contact administrator.' };
   }
 
-  return { success: false, error: 'No email service configured' };
+  try {
+    const msg = {
+      to: email,
+      from: process.env.SENDGRID_FROM_EMAIL, // Must be a verified sender in SendGrid
+      subject: 'Password Reset Code - Gabay Barangay',
+      html: htmlTemplate,
+    };
+
+    console.log('Sending email via SendGrid...');
+    const response = await sgMail.send(msg);
+
+    console.log('SendGrid email sent successfully!');
+    console.log('Response status:', response[0].statusCode);
+
+    return {
+      success: true,
+      messageId: response[0].headers['x-message-id'],
+      provider: 'sendgrid'
+    };
+  } catch (error: any) {
+    console.error('SendGrid error:', error);
+
+    if (error.response) {
+      console.error('SendGrid error body:', error.response.body);
+      return {
+        success: false,
+        error: `Failed to send email: ${error.response.body.errors?.[0]?.message || 'Unknown error'}`
+      };
+    }
+
+    return {
+      success: false,
+      error: `Failed to send email: ${error.message || 'Unknown error'}`
+    };
+  }
 };
