@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 
 // Gmail SMTP configuration (alternative to Resend)
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.GMAIL_USER, // Your Gmail address
