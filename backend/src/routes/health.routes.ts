@@ -1,39 +1,72 @@
-import { Router, Request, Response } from 'express';
-import prisma from '../utils/prisma';
+import { Router } from 'express';
+import {
+  getAllPatients,
+  getPatientById,
+  createPatient,
+  updatePatient,
+  deletePatient,
+  getAppointments,
+  getAppointmentById,
+  createAppointment,
+  updateAppointment,
+  updateAppointmentStatus,
+  deleteAppointment,
+  getMyAppointments,
+  getImmunizationRecords,
+  createImmunizationRecord,
+  getMyImmunizationRecords,
+  getHealthRecords,
+  createHealthRecord,
+  getMyHealthRecords,
+  getCertificates,
+  createCertificate,
+  downloadCertificate,
+  getVaccinations,
+  createVaccination,
+  getUpcomingVaccinations,
+  getImmunizationSchedule,
+  getPatientImmunizationStatus
+} from '../controllers/health.controller';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.get('/health', async (req: Request, res: Response) => {
-  try {
-    // Test database connection
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({ 
-      status: 'healthy', 
-      database: 'connected',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Health check failed:', error);
-    res.status(503).json({ 
-      status: 'unhealthy', 
-      database: 'disconnected',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// ========== PATIENT MANAGEMENT ==========
+router.get('/patients', authenticate, getAllPatients);
+router.get('/patients/:id', authenticate, getPatientById);
+router.post('/patients', authenticate, createPatient);
+router.put('/patients/:id', authenticate, updatePatient);
+router.delete('/patients/:id', authenticate, deletePatient);
 
-// Placeholder endpoints to prevent 404 errors
-router.get('/patients', async (req: Request, res: Response) => {
-  res.json({ patients: [], message: 'Health module not yet implemented' });
-});
+// ========== APPOINTMENT MANAGEMENT ==========
+router.get('/appointments', authenticate, getAppointments);
+router.get('/appointments/:id', authenticate, getAppointmentById);
+router.post('/appointments', authenticate, createAppointment);
+router.put('/appointments/:id', authenticate, updateAppointment);
+router.patch('/appointments/:id/status', authenticate, updateAppointmentStatus);
+router.delete('/appointments/:id', authenticate, deleteAppointment);
+router.get('/my-appointments', authenticate, getMyAppointments);
 
-router.get('/appointments', async (req: Request, res: Response) => {
-  res.json({ appointments: [], message: 'Health module not yet implemented' });
-});
+// ========== IMMUNIZATION RECORDS ==========
+router.get('/immunization-records', authenticate, getImmunizationRecords);
+router.post('/immunization-records', authenticate, createImmunizationRecord);
+router.get('/my-immunization-records', authenticate, getMyImmunizationRecords);
+router.get('/immunization-schedule', authenticate, getImmunizationSchedule);
+router.get('/patients/:patientId/immunization-status', authenticate, getPatientImmunizationStatus);
 
-router.get('/immunization-records', async (req: Request, res: Response) => {
-  res.json({ records: [], message: 'Health module not yet implemented' });
-});
+// ========== HEALTH RECORDS (Legacy) ==========
+router.get('/health-records', authenticate, getHealthRecords);
+router.post('/health-records', authenticate, createHealthRecord);
+router.get('/my-health-records', authenticate, getMyHealthRecords);
+
+// ========== VACCINATIONS (Legacy) ==========
+router.get('/vaccinations', authenticate, getVaccinations);
+router.post('/vaccinations', authenticate, createVaccination);
+router.get('/upcoming-vaccinations', authenticate, getUpcomingVaccinations);
+
+// ========== CERTIFICATES ==========
+router.get('/certificates', authenticate, getCertificates);
+router.post('/certificates', authenticate, createCertificate);
+router.get('/certificates/:id/download', authenticate, downloadCertificate);
 
 export default router;
