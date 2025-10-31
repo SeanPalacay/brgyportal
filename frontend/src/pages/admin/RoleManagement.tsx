@@ -93,7 +93,6 @@ const NAVIGATION_PERMISSIONS = {
       { name: 'PATIENT_MANAGEMENT', description: 'View patient management' },
       { name: 'APPOINTMENTS', description: 'View appointment scheduling' },
       { name: 'HEALTH_RECORDS', description: 'View health records' },
-      { name: 'VACCINATIONS', description: 'View vaccination tracking' },
       { name: 'MY_HEALTH_RECORDS', description: 'View personal health records' }
     ]
   },

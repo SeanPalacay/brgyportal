@@ -129,10 +129,6 @@ const getMultiRoleNavigation = (userRoles: string[], userPermissions: string[] =
       healthItems.push({ title: "Health Records", url: "/health/records" });
     }
     
-    if (hasPermission('VACCINATIONS')) {
-      healthItems.push({ title: "Vaccinations", url: "/health/vaccinations" });
-    }
-    
 
     
     navigation.main.push({
