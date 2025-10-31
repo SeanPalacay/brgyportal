@@ -59,7 +59,7 @@ export const register = async (req: Request, res: Response) => {
     if ((req as any).file) {
       const file = (req as any).file;
       const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
-      const filePath = `proof-of-residency/${fileName}`;
+      const filePath = fileName; // Don't duplicate bucket name in path
 
       try {
         proofOfResidency = await uploadFile('proof-of-residency', file, filePath);

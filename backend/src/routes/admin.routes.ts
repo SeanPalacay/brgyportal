@@ -45,6 +45,7 @@ router.patch('/users/:userId/status', authenticate, updateUserStatus);
 router.put('/users/:userId/role', authenticate, updateUserRole);
 router.put('/users/:userId/roles', authenticate, updateUserRoles);
 router.put('/users/:userId', authenticate, updateUser);
+router.delete('/users/:userId', authenticate, deleteUser);
 
 // ========== SYSTEM SETTINGS ==========
 router.get('/settings', authenticate, getSystemSettings);

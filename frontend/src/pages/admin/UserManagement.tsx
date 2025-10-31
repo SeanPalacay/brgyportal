@@ -64,7 +64,7 @@ import {
   GraduationCap,
   Heart,
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, BACKEND_BASE_URL } from '@/lib/api';
 
 interface YouthProfile {
   purokZone: string;
@@ -158,6 +158,8 @@ export default function UserManagement() {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editFormData, setEditFormData] = useState({
     firstName: '',
@@ -692,7 +694,15 @@ export default function UserManagement() {
                               View Details
                             </DropdownMenuItem>
                             {user.proofOfResidency && (
-                              <DropdownMenuItem onClick={() => window.open(`${import.meta.env.VITE_BASE_URL}${user.proofOfResidency}`, '_blank')}>
+                              <DropdownMenuItem onClick={() => {
+                                // Handle both Supabase URLs and local file paths
+                                let imageUrl = user.proofOfResidency;
+                                if (!imageUrl.startsWith('http')) {
+                                  imageUrl = `${BACKEND_BASE_URL}${imageUrl}`;
+                                }
+                                setSelectedImageUrl(imageUrl);
+                                setShowImageModal(true);
+                              }}>
                                 <FileText className="h-4 w-4 mr-2" />
                                 View Proof of Residency
                               </DropdownMenuItem>
@@ -851,12 +861,19 @@ export default function UserManagement() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => window.open(`${import.meta.env.VITE_BASE_URL}${selectedUser.proofOfResidency}`, '_blank')}
+                                onClick={() => {
+                                  // Handle both Supabase URLs and local file paths
+                                  let imageUrl = selectedUser.proofOfResidency;
+                                  if (!imageUrl.startsWith('http')) {
+                                    imageUrl = `${BACKEND_BASE_URL}${imageUrl}`;
+                                  }
+                                  setSelectedImageUrl(imageUrl);
+                                  setShowImageModal(true);
+                                }}
                                 className="flex items-center gap-2"
                               >
                                 <FileText className="h-4 w-4" />
                                 View Document
-                                <ExternalLink className="h-3 w-3" />
                               </Button>
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                 Uploaded
@@ -1189,6 +1206,85 @@ export default function UserManagement() {
                 <Button onClick={handleUpdateUser}>
                   Update User
                 </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Image Modal Dialog */}
+        <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+            <DialogHeader className="p-6 pb-2">
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Proof of Residency
+              </DialogTitle>
+            </DialogHeader>
+            <div className="px-6 pb-6">
+              <div className="relative bg-gray-50 rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center">
+                <img
+                  src={selectedImageUrl}
+                  alt="Proof of Residency"
+                  className="w-full h-auto max-h-[70vh] object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    const container = target.parentElement;
+                    if (container) {
+                      container.innerHTML = `
+                        <div class="flex flex-col items-center justify-center text-gray-500 p-8">
+                          <svg class="h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                          </svg>
+                          <p class="text-lg font-medium mb-2">Unable to load image</p>
+                          <p class="text-sm text-gray-400 mb-4 text-center">The image may be corrupted, moved, or the server may be unavailable.</p>
+                          <button 
+                            onclick="window.open('${selectedImageUrl}', '_blank')" 
+                            class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                            </svg>
+                            Try Opening in New Tab
+                          </button>
+                        </div>
+                      `;
+                    }
+                  }}
+                  onLoad={() => {
+                    // Image loaded successfully
+                    console.log('Image loaded successfully:', selectedImageUrl);
+                  }}
+                />
+              </div>
+              <div className="space-y-3 mt-4">
+                <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
+                  <p className="font-medium mb-1">Image URL:</p>
+                  <p className="font-mono text-xs break-all select-all">{selectedImageUrl}</p>
+                </div>
+                <div className="flex justify-between items-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(selectedImageUrl);
+                      toast.success('URL copied to clipboard');
+                    }}
+                  >
+                    Copy URL
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(selectedImageUrl, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open in New Tab
+                    </Button>
+                    <Button onClick={() => setShowImageModal(false)}>
+                      Close
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </DialogContent>
