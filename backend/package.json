@@ -25,7 +25,15 @@
   "dependencies": {
     "@prisma/client": "^6.18.0",
     "@supabase/supabase-js": "^2.78.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.4",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/ms": "^0.7.34",
     "@types/multer": "^2.0.0",
+    "@types/node": "^24.9.1",
+    "@types/nodemailer": "^7.0.3",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -38,19 +46,12 @@
     "multer": "^2.0.2",
     "nodemailer": "^7.0.10",
     "puppeteer": "^24.26.1",
-    "resend": "^6.3.0"
+    "resend": "^6.3.0",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.4",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/morgan": "^1.9.10",
-    "@types/node": "^24.9.1",
-    "@types/nodemailer": "^7.0.3",
     "nodemon": "^3.1.10",
     "prisma": "^6.18.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "ts-node": "^10.9.2"
   }
 }
