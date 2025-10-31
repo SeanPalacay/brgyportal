@@ -110,6 +110,7 @@ app.get('/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/system', healthCheckRoutes);
+app.use('/api/health', healthCheckRoutes);
 app.use('/api/daycare', daycareRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/notifications', notificationRoutes);

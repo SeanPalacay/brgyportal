@@ -23,4 +23,17 @@ router.get('/health', async (req: Request, res: Response) => {
   }
 });
 
+// Placeholder endpoints to prevent 404 errors
+router.get('/patients', async (req: Request, res: Response) => {
+  res.json({ patients: [], message: 'Health module not yet implemented' });
+});
+
+router.get('/appointments', async (req: Request, res: Response) => {
+  res.json({ appointments: [], message: 'Health module not yet implemented' });
+});
+
+router.get('/immunization-records', async (req: Request, res: Response) => {
+  res.json({ records: [], message: 'Health module not yet implemented' });
+});
+
 export default router;

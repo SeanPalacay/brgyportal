@@ -353,7 +353,7 @@ export function MultiRoleSidebar({ ...props }: React.ComponentProps<typeof Sideb
   const userData = {
     name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || 'Guest User',
     email: user.email || 'guest@theycare.com',
-    avatar: user.avatar || `/avatars/${user.email}.png`,
+    avatar: user.avatar || '',
   };
 
   return (
