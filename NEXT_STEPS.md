@@ -21,6 +21,31 @@
 
 ## 🔥 IMMEDIATE NEXT STEPS
 
+### Step 0: Enable Row Level Security (RLS) - CRITICAL! ⚠️ (2 minutes)
+
+**⚠️ SECURITY ALERT:** Your tables currently show "unrestricted" - this is a security risk!
+
+**Quick Fix:**
+1. Go to Supabase SQL Editor: https://supabase.com/dashboard/project/lgqbjqfjhdpahcijpnli/sql
+2. Click **New query**
+3. Open the file `supabase-enable-rls.sql` from your project root
+4. Copy ALL the SQL content
+5. Paste into Supabase SQL Editor
+6. Click **Run** or press `Ctrl+Enter`
+
+**Verification:**
+- Go to **Database** → **Tables**
+- All tables should now show 🛡️ shield icon (not "unrestricted")
+
+**Why this is needed:**
+- Without RLS, anyone can access your database directly!
+- With RLS enabled, only your backend (using service_role key) can access data
+- Your app will continue working perfectly
+
+**Detailed guide:** See [SUPABASE_RLS_SETUP.md](./SUPABASE_RLS_SETUP.md)
+
+---
+
 ### Step 1: Create Supabase Storage Buckets (5 minutes)
 
 **Go to your Supabase Dashboard:**
