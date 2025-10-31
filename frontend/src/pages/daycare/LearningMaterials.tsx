@@ -362,8 +362,8 @@ export default function LearningMaterials() {
 
         {/* View Material Modal */}
         <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
-          <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-            <DialogHeader className="p-6 pb-2">
+          <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 {selectedMaterial?.title}
@@ -373,13 +373,13 @@ export default function LearningMaterials() {
               </DialogDescription>
             </DialogHeader>
             {selectedMaterial && (
-              <div className="px-6 pb-6">
-                <div className="relative bg-gray-50 rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center">
+              <div className="flex-1 overflow-y-auto space-y-4">
+                <div className="relative bg-gray-50 rounded-lg overflow-hidden h-[400px] flex items-center justify-center">
                   {selectedMaterial.fileType.includes('image') ? (
                     <img
                       src={selectedMaterial.fileUrl.startsWith('http') ? selectedMaterial.fileUrl : `${BACKEND_BASE_URL}${selectedMaterial.fileUrl}`}
                       alt={selectedMaterial.title}
-                      className="w-full h-auto max-h-[70vh] object-contain"
+                      className="w-full h-full object-contain"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         const container = target.parentElement;
@@ -399,7 +399,7 @@ export default function LearningMaterials() {
                   ) : selectedMaterial.fileType.includes('pdf') ? (
                     <iframe
                       src={selectedMaterial.fileUrl.startsWith('http') ? selectedMaterial.fileUrl : `${BACKEND_BASE_URL}${selectedMaterial.fileUrl}`}
-                      className="w-full h-[70vh] border-0"
+                      className="w-full h-full border-0"
                       title={selectedMaterial.title}
                     />
                   ) : (
@@ -416,71 +416,69 @@ export default function LearningMaterials() {
                     </div>
                   )}
                 </div>
-                <div className="space-y-3 mt-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium text-gray-600">Category:</span>
-                      <div className="mt-1">{getCategoryBadge(selectedMaterial.category)}</div>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">File Type:</span>
-                      <div className="mt-1">{getFileTypeBadge(selectedMaterial.fileType)}</div>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Uploaded By:</span>
-                      <p className="mt-1">{selectedMaterial.uploadedBy}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Upload Date:</span>
-                      <p className="mt-1">{new Date(selectedMaterial.uploadedAt).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Visibility:</span>
-                      <div className="mt-1">
-                        {selectedMaterial.isPublic ? (
-                          <Badge variant="default">Public</Badge>
-                        ) : (
-                          <Badge variant="secondary">Private</Badge>
-                        )}
-                      </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-600">Category:</span>
+                    <div className="mt-1">{getCategoryBadge(selectedMaterial.category)}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">File Type:</span>
+                    <div className="mt-1">{getFileTypeBadge(selectedMaterial.fileType)}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Uploaded By:</span>
+                    <p className="mt-1">{selectedMaterial.uploadedBy}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Upload Date:</span>
+                    <p className="mt-1">{new Date(selectedMaterial.uploadedAt).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Visibility:</span>
+                    <div className="mt-1">
+                      {selectedMaterial.isPublic ? (
+                        <Badge variant="default">Public</Badge>
+                      ) : (
+                        <Badge variant="secondary">Private</Badge>
+                      )}
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
-                    <p className="font-medium mb-1">File URL:</p>
-                    <p className="font-mono text-xs break-all select-all">
-                      {selectedMaterial.fileUrl.startsWith('http') ? selectedMaterial.fileUrl : `${BACKEND_BASE_URL}${selectedMaterial.fileUrl}`}
-                    </p>
-                  </div>
-                  <div className="flex justify-between items-center">
+                </div>
+                <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
+                  <p className="font-medium mb-1">File URL:</p>
+                  <p className="font-mono text-xs break-all select-all">
+                    {selectedMaterial.fileUrl.startsWith('http') ? selectedMaterial.fileUrl : `${BACKEND_BASE_URL}${selectedMaterial.fileUrl}`}
+                  </p>
+                </div>
+                <div className="flex justify-between items-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const fullUrl = selectedMaterial.fileUrl.startsWith('http') ? selectedMaterial.fileUrl : `${BACKEND_BASE_URL}${selectedMaterial.fileUrl}`;
+                      navigator.clipboard.writeText(fullUrl);
+                      toast.success('URL copied to clipboard');
+                    }}
+                  >
+                    Copy URL
+                  </Button>
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const fullUrl = selectedMaterial.fileUrl.startsWith('http') ? selectedMaterial.fileUrl : `${BACKEND_BASE_URL}${selectedMaterial.fileUrl}`;
-                        navigator.clipboard.writeText(fullUrl);
-                        toast.success('URL copied to clipboard');
-                      }}
+                      onClick={() => handleOpenInNewTab(selectedMaterial.fileUrl)}
                     >
-                      Copy URL
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open in New Tab
                     </Button>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => handleOpenInNewTab(selectedMaterial.fileUrl)}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Open in New Tab
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleDownload(selectedMaterial.id, selectedMaterial.fileUrl.split('/').pop() || selectedMaterial.title)}
-                      >
-                        Download
-                      </Button>
-                      <Button onClick={() => setShowViewModal(false)}>
-                        Close
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleDownload(selectedMaterial.id, selectedMaterial.fileUrl.split('/').pop() || selectedMaterial.title)}
+                    >
+                      Download
+                    </Button>
+                    <Button onClick={() => setShowViewModal(false)}>
+                      Close
+                    </Button>
                   </div>
                 </div>
               </div>
