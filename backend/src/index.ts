@@ -8,7 +8,7 @@ import multer from 'multer';
 import path from 'path';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
-import healthRoutes from './routes/health.routes';
+import healthCheckRoutes from './routes/health.routes';
 import daycareRoutes from './routes/daycare.routes';
 import eventRoutes from './routes/event.routes';
 import notificationRoutes from './routes/notification.routes';
@@ -83,14 +83,33 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static('uploads'));
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Gabay Barangay API is running' });
+app.get('/health', async (req, res) => {
+  try {
+    // Test database connection
+    const prisma = (await import('./utils/prisma')).default;
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ 
+      status: 'OK', 
+      message: 'Gabay Barangay API is running',
+      database: 'connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    res.status(503).json({ 
+      status: 'OK', 
+      message: 'Gabay Barangay API is running',
+      database: 'disconnected',
+      error: error instanceof Error ? error.message : 'Database connection failed',
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/health', healthRoutes);
+app.use('/api/system', healthCheckRoutes);
 app.use('/api/daycare', daycareRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/notifications', notificationRoutes);
