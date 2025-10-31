@@ -128,7 +128,9 @@ export default function LearningMaterials() {
   };
 
   const handleView = (fileUrl: string) => {
-    const fullUrl = `${BACKEND_BASE_URL}${fileUrl}`;
+    // If fileUrl is already a complete URL (from Supabase), use it directly
+    // Otherwise, prepend the backend base URL (for legacy local files)
+    const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${BACKEND_BASE_URL}${fileUrl}`;
     window.open(fullUrl, '_blank');
   };
 
