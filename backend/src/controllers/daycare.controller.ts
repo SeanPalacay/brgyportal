@@ -2,6 +2,8 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
 import prisma from '../utils/prisma';
 import { generateCertificatePDF } from '../utils/certificateGenerator';
+import { uploadFile, deleteFile, getDownloadUrl, extractFilePathFromUrl } from '../utils/supabase';
+import path from 'path';
 
 // ========== REGISTRATION MANAGEMENT ==========
 
@@ -566,8 +568,17 @@ export const createLearningMaterial = async (req: AuthRequest, res: Response) =>
     } = req.body;
     const uploadedBy = req.user!.userId;
 
-    // Create file URL
-    const fileUrl = `/uploads/learning-materials/${file.filename}`;
+    // Upload file to Supabase Storage
+    const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}-${file.originalname}`;
+    const filePath = `learning-materials/${fileName}`;
+
+    let fileUrl: string;
+    try {
+      fileUrl = await uploadFile('learning-materials', file, filePath);
+    } catch (error) {
+      console.error('File upload error:', error);
+      return res.status(500).json({ error: 'Failed to upload file to storage' });
+    }
 
     const material = await prisma.learningMaterial.create({
       data: {
@@ -685,13 +696,14 @@ export const deleteLearningMaterial = async (req: AuthRequest, res: Response) =>
       return res.status(404).json({ error: 'Learning material not found' });
     }
 
-    // Delete the file from disk
-    const fs = require('fs');
-    const path = require('path');
-    const filePath = path.join(__dirname, '../../uploads/learning-materials', material.fileUrl.split('/').pop());
+    // Delete the file from Supabase Storage
+    const filePath = extractFilePathFromUrl(material.fileUrl, 'learning-materials');
 
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    try {
+      await deleteFile('learning-materials', filePath);
+    } catch (error) {
+      console.error('Error deleting file from storage:', error);
+      // Continue to delete from database even if file deletion fails
     }
 
     // Delete from database

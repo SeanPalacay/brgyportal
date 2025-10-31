@@ -38,23 +38,10 @@ import { authenticate, authorize } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// Configure multer for learning materials
+// Configure multer for learning materials (memory storage for Supabase)
 // @ts-ignore
 const learningMaterialUpload = multer({
-  // @ts-ignore
-  storage: multer.diskStorage({
-    // @ts-ignore
-    destination: (req, file, cb) => {
-      const uploadPath = path.join(__dirname, '../../uploads/learning-materials');
-      cb(null, uploadPath);
-    },
-    // @ts-ignore
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const filename = 'learning-material-' + uniqueSuffix + '-' + file.originalname;
-      cb(null, filename);
-    }
-  }),
+  storage: multer.memoryStorage(), // Use memory storage for Supabase
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },

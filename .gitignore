@@ -61,6 +61,13 @@ nul
 **/public/sw.js
 **/public/workbox-*.js
 
+# Uploads (local development only - production uses Supabase)
+**/uploads/
+backend/uploads/
+
+# Deployment
+.vercel
+
 # AI files
 .claude/
 CLAUDE.md

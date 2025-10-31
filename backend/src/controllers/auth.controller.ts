@@ -4,34 +4,20 @@ import { hashPassword, comparePassword } from '../utils/password';
 import { generateToken } from '../utils/jwt';
 import { sendOTP, verifyOTP } from '../services/otp.service';
 import { sendPasswordResetEmail } from '../services/email.service';
+import { uploadFile } from '../utils/supabase';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import crypto from 'crypto';
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads/proof-of-residency';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `proof-${uniqueSuffix}${path.extname(file.originalname)}`);
-  }
-});
-
+// Configure multer for file uploads (memory storage for Supabase)
 export const upload = multer({
-  storage,
+  storage: multer.memoryStorage(), // Use memory storage instead of disk
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
-    
+
     if (mimetype && extname) {
       return cb(null, true);
     } else {
@@ -68,8 +54,20 @@ export const register = async (req: Request, res: Response) => {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Handle proof of residency file upload
-    const proofOfResidency = (req as any).file ? `/uploads/proof-of-residency/${(req as any).file.filename}` : null;
+    // Handle proof of residency file upload to Supabase
+    let proofOfResidency = null;
+    if ((req as any).file) {
+      const file = (req as any).file;
+      const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
+      const filePath = `proof-of-residency/${fileName}`;
+
+      try {
+        proofOfResidency = await uploadFile('proof-of-residency', file, filePath);
+      } catch (error) {
+        console.error('File upload error:', error);
+        return res.status(500).json({ error: 'Failed to upload proof of residency' });
+      }
+    }
 
     // Parse profile data if provided
     let profileData = null;
