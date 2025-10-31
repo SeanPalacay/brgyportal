@@ -4,11 +4,12 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { Eye, ExternalLink, FileText } from 'lucide-react';
 
 interface LearningMaterial {
   id: string;
@@ -26,6 +27,8 @@ export default function LearningMaterials() {
   const [materials, setMaterials] = useState<LearningMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<LearningMaterial | null>(null);
   const [filterCategory, setFilterCategory] = useState('all');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
@@ -127,7 +130,12 @@ export default function LearningMaterials() {
     }
   };
 
-  const handleView = (fileUrl: string) => {
+  const handleView = (material: LearningMaterial) => {
+    setSelectedMaterial(material);
+    setShowViewModal(true);
+  };
+
+  const handleOpenInNewTab = (fileUrl: string) => {
     // If fileUrl is already a complete URL (from Supabase), use it directly
     // Otherwise, prepend the backend base URL (for legacy local files)
     const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${BACKEND_BASE_URL}${fileUrl}`;
@@ -319,15 +327,14 @@ export default function LearningMaterials() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            {(material.fileType.includes('image') || material.fileType.includes('pdf')) && (
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleView(material.fileUrl)}
+                              onClick={() => handleView(material)}
                             >
+                              <Eye className="h-4 w-4 mr-1" />
                               View
                             </Button>
-                            )}
                             <Button
                               size="sm"
                               variant="outline"
@@ -353,6 +360,135 @@ export default function LearningMaterials() {
           </CardContent>
         </Card>
 
+        {/* View Material Modal */}
+        <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+            <DialogHeader className="p-6 pb-2">
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                {selectedMaterial?.title}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedMaterial?.description || 'Learning material preview'}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedMaterial && (
+              <div className="px-6 pb-6">
+                <div className="relative bg-gray-50 rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center">
+                  {selectedMaterial.fileType.includes('image') ? (
+                    <img
+                      src={selectedMaterial.fileUrl.startsWith('http') ? selectedMaterial.fileUrl : `${BACKEND_BASE_URL}${selectedMaterial.fileUrl}`}
+                      alt={selectedMaterial.title}
+                      className="w-full h-auto max-h-[70vh] object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        const container = target.parentElement;
+                        if (container) {
+                          container.innerHTML = `
+                            <div class="flex flex-col items-center justify-center text-gray-500 p-8">
+                              <svg class="h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                              </svg>
+                              <p class="text-lg font-medium mb-2">Unable to load image</p>
+                              <p class="text-sm text-gray-400 mb-4 text-center">The image may be corrupted, moved, or the server may be unavailable.</p>
+                            </div>
+                          `;
+                        }
+                      }}
+                    />
+                  ) : selectedMaterial.fileType.includes('pdf') ? (
+                    <iframe
+                      src={selectedMaterial.fileUrl.startsWith('http') ? selectedMaterial.fileUrl : `${BACKEND_BASE_URL}${selectedMaterial.fileUrl}`}
+                      className="w-full h-[70vh] border-0"
+                      title={selectedMaterial.title}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-gray-500 p-8">
+                      <FileText className="h-16 w-16 mb-4" />
+                      <p className="text-lg font-medium mb-2">{selectedMaterial.title}</p>
+                      <p className="text-sm text-gray-400 mb-4 text-center">
+                        {selectedMaterial.description || 'This file type cannot be previewed directly.'}
+                      </p>
+                      <div className="flex gap-2">
+                        {getCategoryBadge(selectedMaterial.category)}
+                        {getFileTypeBadge(selectedMaterial.fileType)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-3 mt-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-600">Category:</span>
+                      <div className="mt-1">{getCategoryBadge(selectedMaterial.category)}</div>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">File Type:</span>
+                      <div className="mt-1">{getFileTypeBadge(selectedMaterial.fileType)}</div>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Uploaded By:</span>
+                      <p className="mt-1">{selectedMaterial.uploadedBy}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Upload Date:</span>
+                      <p className="mt-1">{new Date(selectedMaterial.uploadedAt).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Visibility:</span>
+                      <div className="mt-1">
+                        {selectedMaterial.isPublic ? (
+                          <Badge variant="default">Public</Badge>
+                        ) : (
+                          <Badge variant="secondary">Private</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
+                    <p className="font-medium mb-1">File URL:</p>
+                    <p className="font-mono text-xs break-all select-all">
+                      {selectedMaterial.fileUrl.startsWith('http') ? selectedMaterial.fileUrl : `${BACKEND_BASE_URL}${selectedMaterial.fileUrl}`}
+                    </p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const fullUrl = selectedMaterial.fileUrl.startsWith('http') ? selectedMaterial.fileUrl : `${BACKEND_BASE_URL}${selectedMaterial.fileUrl}`;
+                        navigator.clipboard.writeText(fullUrl);
+                        toast.success('URL copied to clipboard');
+                      }}
+                    >
+                      Copy URL
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => handleOpenInNewTab(selectedMaterial.fileUrl)}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Open in New Tab
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleDownload(selectedMaterial.id, selectedMaterial.fileUrl.split('/').pop() || selectedMaterial.title)}
+                      >
+                        Download
+                      </Button>
+                      <Button onClick={() => setShowViewModal(false)}>
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Upload Material Dialog */}
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
