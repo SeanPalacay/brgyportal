@@ -1326,3 +1326,567 @@ export const createBroadcastMessage = async (req: AuthRequest, res: Response) =>
     res.status(500).json({ error: 'Failed to create broadcast message' });
   }
 };
+
+// ========== PUBLIC CONTENT MANAGEMENT (CMS) ==========
+
+// ========== FEATURES MANAGEMENT ==========
+export const getFeatures = async (req: AuthRequest, res: Response) => {
+  try {
+    const features = await prisma.feature.findMany({
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    res.json({ features });
+  } catch (error) {
+    console.error('Get features error:', error);
+    res.status(500).json({ error: 'Failed to fetch features' });
+  }
+};
+
+export const createFeature = async (req: AuthRequest, res: Response) => {
+  try {
+    const { title, description, iconType, stats, sortOrder, isActive } = req.body;
+
+    if (!title || !description || !iconType) {
+      return res.status(400).json({ error: 'Title, description, and icon type are required' });
+    }
+
+    const feature = await prisma.feature.create({
+      data: {
+        title,
+        description,
+        iconType,
+        stats: stats || 'Active',
+        sortOrder: sortOrder || 0,
+        isActive: isActive !== undefined ? isActive : true
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Created feature: ${title}`,
+        entityType: 'FEATURE',
+        entityId: feature.id,
+        changes: { created: true }
+      }
+    });
+
+    res.status(201).json({ feature, message: 'Feature created successfully' });
+  } catch (error) {
+    console.error('Create feature error:', error);
+    res.status(500).json({ error: 'Failed to create feature' });
+  }
+};
+
+export const updateFeature = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { title, description, iconType, stats, sortOrder, isActive } = req.body;
+
+    const feature = await prisma.feature.update({
+      where: { id },
+      data: {
+        title,
+        description,
+        iconType,
+        stats,
+        sortOrder,
+        isActive
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Updated feature: ${title}`,
+        entityType: 'FEATURE',
+        entityId: id,
+        changes: { title, description, iconType, stats, sortOrder, isActive }
+      }
+    });
+
+    res.json({ feature, message: 'Feature updated successfully' });
+  } catch (error) {
+    console.error('Update feature error:', error);
+    res.status(500).json({ error: 'Failed to update feature' });
+  }
+};
+
+export const deleteFeature = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const feature = await prisma.feature.findUnique({ where: { id } });
+    if (!feature) {
+      return res.status(404).json({ error: 'Feature not found' });
+    }
+
+    await prisma.feature.delete({ where: { id } });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Deleted feature: ${feature.title}`,
+        entityType: 'FEATURE',
+        entityId: id,
+        changes: { deleted: true }
+      }
+    });
+
+    res.json({ message: 'Feature deleted successfully' });
+  } catch (error) {
+    console.error('Delete feature error:', error);
+    res.status(500).json({ error: 'Failed to delete feature' });
+  }
+};
+
+export const toggleFeatureActive = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const feature = await prisma.feature.findUnique({ where: { id } });
+    if (!feature) {
+      return res.status(404).json({ error: 'Feature not found' });
+    }
+
+    const updatedFeature = await prisma.feature.update({
+      where: { id },
+      data: { isActive: !feature.isActive }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Toggled feature ${updatedFeature.isActive ? 'active' : 'inactive'}: ${feature.title}`,
+        entityType: 'FEATURE',
+        entityId: id,
+        changes: { isActive: updatedFeature.isActive }
+      }
+    });
+
+    res.json({ feature: updatedFeature, message: `Feature ${updatedFeature.isActive ? 'activated' : 'deactivated'} successfully` });
+  } catch (error) {
+    console.error('Toggle feature active error:', error);
+    res.status(500).json({ error: 'Failed to toggle feature status' });
+  }
+};
+
+// ========== BENEFITS MANAGEMENT ==========
+export const getBenefits = async (req: AuthRequest, res: Response) => {
+  try {
+    const benefits = await prisma.benefit.findMany({
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    res.json({ benefits });
+  } catch (error) {
+    console.error('Get benefits error:', error);
+    res.status(500).json({ error: 'Failed to fetch benefits' });
+  }
+};
+
+export const createBenefit = async (req: AuthRequest, res: Response) => {
+  try {
+    const { text, iconType, sortOrder, isActive } = req.body;
+
+    if (!text || !iconType) {
+      return res.status(400).json({ error: 'Text and icon type are required' });
+    }
+
+    const benefit = await prisma.benefit.create({
+      data: {
+        text,
+        iconType,
+        sortOrder: sortOrder || 0,
+        isActive: isActive !== undefined ? isActive : true
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Created benefit: ${text}`,
+        entityType: 'BENEFIT',
+        entityId: benefit.id,
+        changes: { created: true }
+      }
+    });
+
+    res.status(201).json({ benefit, message: 'Benefit created successfully' });
+  } catch (error) {
+    console.error('Create benefit error:', error);
+    res.status(500).json({ error: 'Failed to create benefit' });
+  }
+};
+
+export const updateBenefit = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { text, iconType, sortOrder, isActive } = req.body;
+
+    const benefit = await prisma.benefit.update({
+      where: { id },
+      data: {
+        text,
+        iconType,
+        sortOrder,
+        isActive
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Updated benefit: ${text}`,
+        entityType: 'BENEFIT',
+        entityId: id,
+        changes: { text, iconType, sortOrder, isActive }
+      }
+    });
+
+    res.json({ benefit, message: 'Benefit updated successfully' });
+  } catch (error) {
+    console.error('Update benefit error:', error);
+    res.status(500).json({ error: 'Failed to update benefit' });
+  }
+};
+
+export const deleteBenefit = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const benefit = await prisma.benefit.findUnique({ where: { id } });
+    if (!benefit) {
+      return res.status(404).json({ error: 'Benefit not found' });
+    }
+
+    await prisma.benefit.delete({ where: { id } });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Deleted benefit: ${benefit.text}`,
+        entityType: 'BENEFIT',
+        entityId: id,
+        changes: { deleted: true }
+      }
+    });
+
+    res.json({ message: 'Benefit deleted successfully' });
+  } catch (error) {
+    console.error('Delete benefit error:', error);
+    res.status(500).json({ error: 'Failed to delete benefit' });
+  }
+};
+
+export const toggleBenefitActive = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const benefit = await prisma.benefit.findUnique({ where: { id } });
+    if (!benefit) {
+      return res.status(404).json({ error: 'Benefit not found' });
+    }
+
+    const updatedBenefit = await prisma.benefit.update({
+      where: { id },
+      data: { isActive: !benefit.isActive }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Toggled benefit ${updatedBenefit.isActive ? 'active' : 'inactive'}: ${benefit.text}`,
+        entityType: 'BENEFIT',
+        entityId: id,
+        changes: { isActive: updatedBenefit.isActive }
+      }
+    });
+
+    res.json({ benefit: updatedBenefit, message: `Benefit ${updatedBenefit.isActive ? 'activated' : 'deactivated'} successfully` });
+  } catch (error) {
+    console.error('Toggle benefit active error:', error);
+    res.status(500).json({ error: 'Failed to toggle benefit status' });
+  }
+};
+
+// ========== TESTIMONIALS MANAGEMENT ==========
+export const getTestimonials = async (req: AuthRequest, res: Response) => {
+  try {
+    const testimonials = await prisma.testimonial.findMany({
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    res.json({ testimonials });
+  } catch (error) {
+    console.error('Get testimonials error:', error);
+    res.status(500).json({ error: 'Failed to fetch testimonials' });
+  }
+};
+
+export const createTestimonial = async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, role, content, rating, sortOrder, isActive } = req.body;
+
+    if (!name || !role || !content) {
+      return res.status(400).json({ error: 'Name, role, and content are required' });
+    }
+
+    const testimonial = await prisma.testimonial.create({
+      data: {
+        name,
+        role,
+        content,
+        rating: rating || 5,
+        sortOrder: sortOrder || 0,
+        isActive: isActive !== undefined ? isActive : true
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Created testimonial: ${name}`,
+        entityType: 'TESTIMONIAL',
+        entityId: testimonial.id,
+        changes: { created: true }
+      }
+    });
+
+    res.status(201).json({ testimonial, message: 'Testimonial created successfully' });
+  } catch (error) {
+    console.error('Create testimonial error:', error);
+    res.status(500).json({ error: 'Failed to create testimonial' });
+  }
+};
+
+export const updateTestimonial = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, role, content, rating, sortOrder, isActive } = req.body;
+
+    const testimonial = await prisma.testimonial.update({
+      where: { id },
+      data: {
+        name,
+        role,
+        content,
+        rating,
+        sortOrder,
+        isActive
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Updated testimonial: ${name}`,
+        entityType: 'TESTIMONIAL',
+        entityId: id,
+        changes: { name, role, content, rating, sortOrder, isActive }
+      }
+    });
+
+    res.json({ testimonial, message: 'Testimonial updated successfully' });
+  } catch (error) {
+    console.error('Update testimonial error:', error);
+    res.status(500).json({ error: 'Failed to update testimonial' });
+  }
+};
+
+export const deleteTestimonial = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const testimonial = await prisma.testimonial.findUnique({ where: { id } });
+    if (!testimonial) {
+      return res.status(404).json({ error: 'Testimonial not found' });
+    }
+
+    await prisma.testimonial.delete({ where: { id } });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Deleted testimonial: ${testimonial.name}`,
+        entityType: 'TESTIMONIAL',
+        entityId: id,
+        changes: { deleted: true }
+      }
+    });
+
+    res.json({ message: 'Testimonial deleted successfully' });
+  } catch (error) {
+    console.error('Delete testimonial error:', error);
+    res.status(500).json({ error: 'Failed to delete testimonial' });
+  }
+};
+
+export const toggleTestimonialActive = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const testimonial = await prisma.testimonial.findUnique({ where: { id } });
+    if (!testimonial) {
+      return res.status(404).json({ error: 'Testimonial not found' });
+    }
+
+    const updatedTestimonial = await prisma.testimonial.update({
+      where: { id },
+      data: { isActive: !testimonial.isActive }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Toggled testimonial ${updatedTestimonial.isActive ? 'active' : 'inactive'}: ${testimonial.name}`,
+        entityType: 'TESTIMONIAL',
+        entityId: id,
+        changes: { isActive: updatedTestimonial.isActive }
+      }
+    });
+
+    res.json({ testimonial: updatedTestimonial, message: `Testimonial ${updatedTestimonial.isActive ? 'activated' : 'deactivated'} successfully` });
+  } catch (error) {
+    console.error('Toggle testimonial active error:', error);
+    res.status(500).json({ error: 'Failed to toggle testimonial status' });
+  }
+};
+
+// ========== SERVICE FEATURES MANAGEMENT ==========
+export const getServiceFeatures = async (req: AuthRequest, res: Response) => {
+  try {
+    const serviceFeatures = await prisma.serviceFeature.findMany({
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    res.json({ serviceFeatures });
+  } catch (error) {
+    console.error('Get service features error:', error);
+    res.status(500).json({ error: 'Failed to fetch service features' });
+  }
+};
+
+export const createServiceFeature = async (req: AuthRequest, res: Response) => {
+  try {
+    const { description, sortOrder, isActive } = req.body;
+
+    if (!description) {
+      return res.status(400).json({ error: 'Description is required' });
+    }
+
+    const serviceFeature = await prisma.serviceFeature.create({
+      data: {
+        description,
+        sortOrder: sortOrder || 0,
+        isActive: isActive !== undefined ? isActive : true
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Created service feature: ${description}`,
+        entityType: 'SERVICE_FEATURE',
+        entityId: serviceFeature.id,
+        changes: { created: true }
+      }
+    });
+
+    res.status(201).json({ serviceFeature, message: 'Service feature created successfully' });
+  } catch (error) {
+    console.error('Create service feature error:', error);
+    res.status(500).json({ error: 'Failed to create service feature' });
+  }
+};
+
+export const updateServiceFeature = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { description, sortOrder, isActive } = req.body;
+
+    const serviceFeature = await prisma.serviceFeature.update({
+      where: { id },
+      data: {
+        description,
+        sortOrder,
+        isActive
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Updated service feature: ${description}`,
+        entityType: 'SERVICE_FEATURE',
+        entityId: id,
+        changes: { description, sortOrder, isActive }
+      }
+    });
+
+    res.json({ serviceFeature, message: 'Service feature updated successfully' });
+  } catch (error) {
+    console.error('Update service feature error:', error);
+    res.status(500).json({ error: 'Failed to update service feature' });
+  }
+};
+
+export const deleteServiceFeature = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const serviceFeature = await prisma.serviceFeature.findUnique({ where: { id } });
+    if (!serviceFeature) {
+      return res.status(404).json({ error: 'Service feature not found' });
+    }
+
+    await prisma.serviceFeature.delete({ where: { id } });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Deleted service feature: ${serviceFeature.description}`,
+        entityType: 'SERVICE_FEATURE',
+        entityId: id,
+        changes: { deleted: true }
+      }
+    });
+
+    res.json({ message: 'Service feature deleted successfully' });
+  } catch (error) {
+    console.error('Delete service feature error:', error);
+    res.status(500).json({ error: 'Failed to delete service feature' });
+  }
+};
+
+export const toggleServiceFeatureActive = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const serviceFeature = await prisma.serviceFeature.findUnique({ where: { id } });
+    if (!serviceFeature) {
+      return res.status(404).json({ error: 'Service feature not found' });
+    }
+
+    const updatedServiceFeature = await prisma.serviceFeature.update({
+      where: { id },
+      data: { isActive: !serviceFeature.isActive }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: `Toggled service feature ${updatedServiceFeature.isActive ? 'active' : 'inactive'}: ${serviceFeature.description}`,
+        entityType: 'SERVICE_FEATURE',
+        entityId: id,
+        changes: { isActive: updatedServiceFeature.isActive }
+      }
+    });
+
+    res.json({ serviceFeature: updatedServiceFeature, message: `Service feature ${updatedServiceFeature.isActive ? 'activated' : 'deactivated'} successfully` });
+  } catch (error) {
+    console.error('Toggle service feature active error:', error);
+    res.status(500).json({ error: 'Failed to toggle service feature status' });
+  }
+};

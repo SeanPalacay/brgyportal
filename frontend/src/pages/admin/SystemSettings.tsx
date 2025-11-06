@@ -27,9 +27,14 @@ import {
   RefreshCw,
   AlertCircle,
   Info,
+  Heart,
+  Gift,
+  MessageSquare,
+  List,
 } from 'lucide-react';
 // import { SystemBackup } from '@/types';
 import { api } from '@/lib/api';
+import { FeaturesTab, BenefitsTab, TestimonialsTab, ServiceFeaturesTab } from '@/components/admin/CMSTabs';
 
 interface SystemConfig {
   barangayName: string;
@@ -206,18 +211,22 @@ export default function SystemSettings() {
               <Settings className="mr-2 h-4 w-4" />
               General
             </TabsTrigger>
-            {/* <TabsTrigger value="notifications">
-              <Bell className="mr-2 h-4 w-4" />
-              Notifications
-            </TabsTrigger> */}
-            {/* <TabsTrigger value="security">
-              <Shield className="mr-2 h-4 w-4" />
-              Security
-            </TabsTrigger> */}
-            {/* <TabsTrigger value="system">
-              <Globe className="mr-2 h-4 w-4" />
-              System
-            </TabsTrigger> */}
+            <TabsTrigger value="features">
+              <Heart className="mr-2 h-4 w-4" />
+              Features
+            </TabsTrigger>
+            <TabsTrigger value="benefits">
+              <Gift className="mr-2 h-4 w-4" />
+              Benefits
+            </TabsTrigger>
+            <TabsTrigger value="testimonials">
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Testimonials
+            </TabsTrigger>
+            <TabsTrigger value="service-features">
+              <List className="mr-2 h-4 w-4" />
+              Services
+            </TabsTrigger>
           </TabsList>
 
           {/* General Settings */}
@@ -544,6 +553,23 @@ export default function SystemSettings() {
                 </Button>
               </CardFooter>
             </Card>
+          </TabsContent>
+
+          {/* CMS Content Management Tabs */}
+          <TabsContent value="features" className="space-y-4">
+            <FeaturesTab />
+          </TabsContent>
+
+          <TabsContent value="benefits" className="space-y-4">
+            <BenefitsTab />
+          </TabsContent>
+
+          <TabsContent value="testimonials" className="space-y-4">
+            <TestimonialsTab />
+          </TabsContent>
+
+          <TabsContent value="service-features" className="space-y-4">
+            <ServiceFeaturesTab />
           </TabsContent>
         </Tabs>
       </div>

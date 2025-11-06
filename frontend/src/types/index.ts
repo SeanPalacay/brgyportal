@@ -119,3 +119,47 @@ export interface SystemBackup {
   initiatedBy: string;
   errorMessage?: string;
 }
+
+// CMS / Public Content Types
+export interface Feature {
+  id: string;
+  title: string;
+  description: string;
+  iconType: string; // 'heart', 'baby', 'users'
+  stats: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Benefit {
+  id: string;
+  text: string;
+  iconType: string; // 'shield', 'fileText', 'calendar', 'barChart'
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Testimonial {
+  id: string;
+  name: string;
+  role: string;
+  content: string;
+  rating: number; // 1-5
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServiceFeature {
+  id: string;
+  description: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}

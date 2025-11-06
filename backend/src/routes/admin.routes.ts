@@ -28,7 +28,28 @@ import {
   getBackups,
   downloadBackup,
   getBroadcastMessages,
-  createBroadcastMessage
+  createBroadcastMessage,
+  // CMS Content Management
+  getFeatures,
+  createFeature,
+  updateFeature,
+  deleteFeature,
+  toggleFeatureActive,
+  getBenefits,
+  createBenefit,
+  updateBenefit,
+  deleteBenefit,
+  toggleBenefitActive,
+  getTestimonials,
+  createTestimonial,
+  updateTestimonial,
+  deleteTestimonial,
+  toggleTestimonialActive,
+  getServiceFeatures,
+  createServiceFeature,
+  updateServiceFeature,
+  deleteServiceFeature,
+  toggleServiceFeatureActive
 } from '../controllers/admin.controller';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 
@@ -76,5 +97,35 @@ router.post('/broadcast-messages', authenticate, createBroadcastMessage);
 
 // ========== AUDIT LOGS ==========
 router.get('/audit-logs', authenticate, getAuditLogs);
+
+// ========== PUBLIC CONTENT MANAGEMENT (CMS) ==========
+
+// Features Management
+router.get('/features', authenticate, getFeatures);
+router.post('/features', authenticate, createFeature);
+router.put('/features/:id', authenticate, updateFeature);
+router.delete('/features/:id', authenticate, deleteFeature);
+router.patch('/features/:id/toggle-active', authenticate, toggleFeatureActive);
+
+// Benefits Management
+router.get('/benefits', authenticate, getBenefits);
+router.post('/benefits', authenticate, createBenefit);
+router.put('/benefits/:id', authenticate, updateBenefit);
+router.delete('/benefits/:id', authenticate, deleteBenefit);
+router.patch('/benefits/:id/toggle-active', authenticate, toggleBenefitActive);
+
+// Testimonials Management
+router.get('/testimonials', authenticate, getTestimonials);
+router.post('/testimonials', authenticate, createTestimonial);
+router.put('/testimonials/:id', authenticate, updateTestimonial);
+router.delete('/testimonials/:id', authenticate, deleteTestimonial);
+router.patch('/testimonials/:id/toggle-active', authenticate, toggleTestimonialActive);
+
+// Service Features Management
+router.get('/service-features', authenticate, getServiceFeatures);
+router.post('/service-features', authenticate, createServiceFeature);
+router.put('/service-features/:id', authenticate, updateServiceFeature);
+router.delete('/service-features/:id', authenticate, deleteServiceFeature);
+router.patch('/service-features/:id/toggle-active', authenticate, toggleServiceFeatureActive);
 
 export default router;
