@@ -163,6 +163,9 @@ export default function YouthRegistration() {
     }
   }, [formData.birthday]);
 
+  // Check if user is 30 or above
+  const isAgeThirtyOrAbove = parseInt(formData.age) >= 30;
+
   const handleInputChange = (field: keyof ProfileFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -202,12 +205,14 @@ export default function YouthRegistration() {
         return !!(
           formData.youthAgeGroup &&
           formData.educationalBackground &&
-          formData.workStatus &&
-          formData.registeredSkVoter &&
-          formData.registeredNationalVoter &&
-          formData.votedLastSkElection &&
+          formData.lgbtqCommunity &&
           formData.attendedSkAssembly &&
-          formData.lgbtqCommunity
+          // Conditionally require work status and voter info for 30+ users
+          (isAgeThirtyOrAbove ? 
+            (formData.workStatus && 
+             formData.registeredSkVoter && 
+             formData.registeredNationalVoter && 
+             formData.votedLastSkElection) : true)
         );
       case 3:
         return true; // Interests are optional
@@ -223,8 +228,8 @@ export default function YouthRegistration() {
         return;
       }
 
-      if (parseInt(formData.age) < 15 || parseInt(formData.age) > 30) {
-        toast.error('Age must be between 15 and 30 years old');
+      if (parseInt(formData.age) < 15) {
+        toast.error('Age must be 15 or above');
         return;
       }
 
@@ -497,7 +502,6 @@ export default function YouthRegistration() {
                     id="age"
                     type="number"
                     min="15"
-                    max="30"
                     value={formData.age}
                     onChange={(e) => handleInputChange('age', e.target.value)}
                     required
@@ -790,34 +794,37 @@ export default function YouthRegistration() {
                 </Select>
               </div>
 
-              {/* Work Status */}
-              <div>
-                <Label className="text-base font-medium flex items-center gap-2">
-                  <Briefcase className="h-4 w-4" />
-                  Work Status *
-                </Label>
-                <RadioGroup
-                  value={formData.workStatus}
-                  onValueChange={(value) => handleInputChange('workStatus', value)}
-                  className="space-y-2 mt-2"
-                >
-                  {[
-                    'Employed',
-                    'Unemployed',
-                    'Self-employed',
-                    'Currently looking for a job',
-                    'Not interested in looking for a job'
-                  ].map((status) => (
-                    <div key={status} className="flex items-center space-x-2">
-                      <RadioGroupItem value={status} id={status} />
-                      <Label htmlFor={status}>{status}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
+              {/* Work Status - Only show for 30+ */}
+              {isAgeThirtyOrAbove && (
+                <div>
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Briefcase className="h-4 w-4" />
+                    Work Status *
+                  </Label>
+                  <RadioGroup
+                    value={formData.workStatus}
+                    onValueChange={(value) => handleInputChange('workStatus', value)}
+                    className="space-y-2 mt-2"
+                  >
+                    {[
+                      'Employed',
+                      'Unemployed',
+                      'Self-employed',
+                      'Currently looking for a job',
+                      'Not interested in looking for a job'
+                    ].map((status) => (
+                      <div key={status} className="flex items-center space-x-2">
+                        <RadioGroupItem value={status} id={status} />
+                        <Label htmlFor={status}>{status}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              )}
 
-              {/* Voter Information */}
-              <div className="space-y-4">
+              {/* Voter Information - Only show for 30+ */}
+              {isAgeThirtyOrAbove && (
+                <div className="space-y-4">
                 <Label className="text-base font-medium flex items-center gap-2">
                   <Vote className="h-4 w-4" />
                   Voter Information
@@ -878,7 +885,7 @@ export default function YouthRegistration() {
                     </RadioGroup>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* SK Assembly */}
               <div>
