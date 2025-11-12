@@ -247,8 +247,8 @@ export default function YouthRegistration() {
       }
 
       const ageNum = parseInt(formData.age);
-      if (isNaN(ageNum) || ageNum < 15) {
-        toast.error('Age must be 15 or above');
+      if (isNaN(ageNum) || ageNum < 0) {
+        toast.error('Age must be a valid number');
         return;
       }
 
@@ -530,7 +530,7 @@ export default function YouthRegistration() {
                       className="bg-muted"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Age is automatically calculated from birthday (15+ years old)
+                      Age is automatically calculated from birthday
                     </p>
                   </div>
                 </div>
@@ -1014,7 +1014,7 @@ export default function YouthRegistration() {
                       className="bg-muted"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Age is automatically calculated from birthday (15-30 years old)
+                      Age is automatically calculated from birthday
                     </p>
                   </div>
                 </div>
