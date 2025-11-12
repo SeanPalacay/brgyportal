@@ -20,8 +20,6 @@ import {
   GraduationCap,
   Briefcase,
   Vote,
-  Heart,
-  Trophy,
   FileText,
   CheckCircle2,
   Shield,
@@ -52,32 +50,19 @@ interface ProfileFormData {
   emailAddress: string;
   password: string;
   confirmPassword: string;
-  
-  // Demographic Characteristics
-  youthAgeGroup: string;
-  youthClassification: string[];
-  educationalBackground: string;
+
+  // Additional adult-specific fields
   workStatus: string;
   registeredSkVoter: string;
   registeredNationalVoter: string;
   votedLastSkElection: string;
-  attendedSkAssembly: string;
-  assemblyAttendanceCount: string;
-  notAttendedReason: string;
   lgbtqCommunity: string;
-  youthSpecificNeeds: string[];
   soloParent: boolean;
-  
-  // Interests
-  sports: string[];
-  sportsOtherSpecify: string;
-  hobbies: string[];
 }
 
 const STEPS = [
   { id: 1, title: 'Personal Profile', icon: User },
   { id: 2, title: 'Demographics', icon: GraduationCap },
-  { id: 3, title: 'Interests', icon: Heart }
 ];
 
 const PHILIPPINE_REGIONS = [
@@ -124,24 +109,14 @@ export default function YouthRegistration() {
     emailAddress: '',
     password: '',
     confirmPassword: '',
-    youthAgeGroup: '',
-    youthClassification: [],
-    educationalBackground: '',
     workStatus: '',
     registeredSkVoter: '',
     registeredNationalVoter: '',
     votedLastSkElection: '',
-    attendedSkAssembly: '',
-    assemblyAttendanceCount: '',
-    notAttendedReason: '',
     lgbtqCommunity: '',
-    youthSpecificNeeds: [],
-    soloParent: false,
-    sports: [],
-    sportsOtherSpecify: '',
-    hobbies: []
+    soloParent: false
   });
-  
+
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -154,7 +129,7 @@ export default function YouthRegistration() {
       const today = new Date();
       const age = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
-      
+
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         setFormData(prev => ({ ...prev, age: (age - 1).toString() }));
       } else {
@@ -168,15 +143,6 @@ export default function YouthRegistration() {
 
   const handleInputChange = (field: keyof ProfileFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleArrayChange = (field: keyof ProfileFormData, value: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: checked 
-        ? [...(prev[field] as string[]), value]
-        : (prev[field] as string[]).filter(item => item !== value)
-    }));
   };
 
   const validateStep = (step: number): boolean => {
@@ -203,10 +169,6 @@ export default function YouthRegistration() {
         );
       case 2:
         return !!(
-          formData.youthAgeGroup &&
-          formData.educationalBackground &&
-          formData.lgbtqCommunity &&
-          formData.attendedSkAssembly &&
           // Conditionally require work status and voter info for 30+ users
           (isAgeThirtyOrAbove ? 
             (formData.workStatus && 
@@ -214,8 +176,6 @@ export default function YouthRegistration() {
              formData.registeredNationalVoter && 
              formData.votedLastSkElection) : true)
         );
-      case 3:
-        return true; // Interests are optional
       default:
         return false;
     }
@@ -228,7 +188,8 @@ export default function YouthRegistration() {
         return;
       }
 
-      if (parseInt(formData.age) < 15) {
+      const ageNum = parseInt(formData.age);
+      if (isNaN(ageNum) || ageNum < 15) {
         toast.error('Age must be 15 or above');
         return;
       }
@@ -265,7 +226,7 @@ export default function YouthRegistration() {
     }
 
     if (validateStep(currentStep)) {
-      if (currentStep === 3) {
+      if (currentStep === STEPS.length) {
         setShowConsentModal(true);
       } else {
         setCurrentStep(prev => prev + 1);
@@ -276,7 +237,7 @@ export default function YouthRegistration() {
   };
 
   const handlePrevious = () => {
-    setCurrentStep(prev => prev - 1);
+    setCurrentStep(prev => Math.max(1, prev - 1));
   };
 
   const handleSubmit = async () => {
@@ -288,7 +249,7 @@ export default function YouthRegistration() {
     setLoading(true);
     try {
       const formDataToSend = new FormData();
-      
+
       // Basic user data
       formDataToSend.append('email', formData.emailAddress);
       formDataToSend.append('password', formData.password);
@@ -300,7 +261,7 @@ export default function YouthRegistration() {
       formDataToSend.append('role', 'PARENT_RESIDENT');
       formDataToSend.append('proofOfResidency', proofFile!);
       formDataToSend.append('consentAgreed', 'true');
-      
+
       // Profile data
       const profileData = {
         purokZone: formData.purokZone,
@@ -313,32 +274,22 @@ export default function YouthRegistration() {
         sex: formData.sex,
         civilStatus: formData.civilStatus,
         religion: formData.religion,
-        youthAgeGroup: formData.youthAgeGroup,
-        youthClassification: formData.youthClassification,
-        educationalBackground: formData.educationalBackground,
         workStatus: formData.workStatus,
         registeredSkVoter: formData.registeredSkVoter === 'YES',
         registeredNationalVoter: formData.registeredNationalVoter === 'YES',
         votedLastSkElection: formData.votedLastSkElection === 'YES',
-        attendedSkAssembly: formData.attendedSkAssembly === 'YES',
-        assemblyAttendanceCount: formData.assemblyAttendanceCount,
-        notAttendedReason: formData.notAttendedReason,
         lgbtqCommunity: formData.lgbtqCommunity === 'YES',
-        youthSpecificNeeds: formData.youthSpecificNeeds,
-        soloParent: formData.soloParent,
-        sports: formData.sports,
-        sportsOtherSpecify: formData.sportsOtherSpecify,
-        hobbies: formData.hobbies
+        soloParent: formData.soloParent
       };
-      
+
       formDataToSend.append('profile', JSON.stringify(profileData));
 
       await registerUser(formDataToSend);
-      
+
       toast.success('Registration successful!', {
         description: 'Your profile has been submitted and is pending approval.'
       });
-      
+
       navigate('/login');
     } catch (err: any) {
       console.error('Registration error:', err);
@@ -509,7 +460,7 @@ export default function YouthRegistration() {
                     className="bg-muted"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Age is automatically calculated from birthday (15-30 years old)
+                    Age is automatically calculated from birthday (15+ years old)
                   </p>
                 </div>
               </div>
@@ -571,7 +522,7 @@ export default function YouthRegistration() {
                     value={formData.contactNumber}
                     onChange={(e) => {
                       let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-                      
+
                       // Ensure it starts with 09
                       if (value.length > 0 && !value.startsWith('09')) {
                         if (value.startsWith('9')) {
@@ -582,12 +533,12 @@ export default function YouthRegistration() {
                           value = '09' + value;
                         }
                       }
-                      
+
                       // Limit to 11 digits (09XXXXXXXXX)
                       if (value.length > 11) {
                         value = value.substring(0, 11);
                       }
-                      
+
                       handleInputChange('contactNumber', value);
                     }}
                     pattern="09[0-9]{9}"
@@ -700,100 +651,13 @@ export default function YouthRegistration() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <GraduationCap className="h-5 w-5" />
-                Demographic Characteristics
+                Additional Information
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Help us understand your background and current situation
+                Additional information for adults
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Youth Age Group */}
-              <div className="bg-muted/30 p-4 rounded-lg">
-                <Label className="text-base font-medium">Youth Age Group *</Label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Select the age group that matches your current age
-                </p>
-                <RadioGroup
-                  value={formData.youthAgeGroup}
-                  onValueChange={(value) => handleInputChange('youthAgeGroup', value)}
-                  className="space-y-2"
-                >
-                  {[
-                    'Child Youth (15-17 yrs old)',
-                    'Core Youth (18-24 yrs old)',
-                    'Young Adult (25-30 yrs old)'
-                  ].map((group) => (
-                    <div key={group} className="flex items-center space-x-2">
-                      <RadioGroupItem value={group} id={group} />
-                      <Label htmlFor={group}>{group}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              {/* Youth Classification */}
-              <div>
-                <Label className="text-base font-medium">Youth Classification *</Label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Select all categories that describe your current situation
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { value: 'In-school youth', desc: 'Currently enrolled in school' },
-                    { value: 'Out of school youth', desc: 'Not currently in school' },
-                    { value: 'Working Youth', desc: 'Currently employed or working' },
-                    { value: 'Teenage Parent', desc: 'Parent under 20 years old' }
-                  ].map((classification) => (
-                    <div key={classification.value} className="flex items-start space-x-2 p-2 rounded border">
-                      <Checkbox
-                        id={classification.value}
-                        checked={formData.youthClassification.includes(classification.value)}
-                        onCheckedChange={(checked) => 
-                          handleArrayChange('youthClassification', classification.value, checked as boolean)
-                        }
-                        className="mt-1"
-                      />
-                      <div>
-                        <Label htmlFor={classification.value} className="font-medium">{classification.value}</Label>
-                        <p className="text-xs text-muted-foreground">{classification.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Educational Background */}
-              <div>
-                <Label htmlFor="educationalBackground">Educational Background *</Label>
-                <Select
-                  value={formData.educationalBackground}
-                  onValueChange={(value) => handleInputChange('educationalBackground', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Educational Background" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      'Elementary Level',
-                      'Elementary Graduate',
-                      'High School Level',
-                      'High School Graduate',
-                      'Vocational Graduate',
-                      'College Level',
-                      'College Graduate',
-                      'Masters Level',
-                      'Masters Graduate',
-                      'Doctorate Level',
-                      'Doctorate Graduate'
-                    ].map((education) => (
-                      <SelectItem key={education} value={education}>
-                        {education}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               {/* Work Status - Only show for 30+ */}
               {isAgeThirtyOrAbove && (
                 <div>
@@ -888,74 +752,7 @@ export default function YouthRegistration() {
                 </div>
               )}
 
-              {/* SK Assembly */}
-              <div>
-                <Label className="font-medium">Have you attended SK Assembly? *</Label>
-                <RadioGroup
-                  value={formData.attendedSkAssembly}
-                  onValueChange={(value) => {
-                    handleInputChange('attendedSkAssembly', value);
-                    // Reset conditional fields
-                    if (value === 'YES') {
-                      handleInputChange('notAttendedReason', '');
-                    } else {
-                      handleInputChange('assemblyAttendanceCount', '');
-                    }
-                  }}
-                  className="flex gap-4 mt-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="YES" id="assembly-yes" />
-                    <Label htmlFor="assembly-yes">YES</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="NO" id="assembly-no" />
-                    <Label htmlFor="assembly-no">NO</Label>
-                  </div>
-                </RadioGroup>
-
-                {formData.attendedSkAssembly === 'YES' && (
-                  <div className="mt-4">
-                    <Label className="font-medium">How many times?</Label>
-                    <RadioGroup
-                      value={formData.assemblyAttendanceCount}
-                      onValueChange={(value) => handleInputChange('assemblyAttendanceCount', value)}
-                      className="space-y-2 mt-2"
-                    >
-                      {['1-2 times', '3-4 times', '5 and above'].map((count) => (
-                        <div key={count} className="flex items-center space-x-2">
-                          <RadioGroupItem value={count} id={count} />
-                          <Label htmlFor={count}>{count}</Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-                )}
-
-                {formData.attendedSkAssembly === 'NO' && (
-                  <div className="mt-4">
-                    <Label className="font-medium">Why not?</Label>
-                    <RadioGroup
-                      value={formData.notAttendedReason}
-                      onValueChange={(value) => handleInputChange('notAttendedReason', value)}
-                      className="space-y-2 mt-2"
-                    >
-                      {[
-                        'There was no KK Assembly',
-                        'Meeting',
-                        'Not interested to attend'
-                      ].map((reason) => (
-                        <div key={reason} className="flex items-center space-x-2">
-                          <RadioGroupItem value={reason} id={reason} />
-                          <Label htmlFor={reason}>{reason}</Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-                )}
-              </div>
-
-              {/* LGBTQ+ */}
+              {/* LGBTQ+ - Always show */}
               <div>
                 <Label className="font-medium">Are you part of LGBTQ+ Community? *</Label>
                 <RadioGroup
@@ -974,135 +771,16 @@ export default function YouthRegistration() {
                 </RadioGroup>
               </div>
 
-              {/* Specific Needs */}
-              <div>
-                <Label className="text-base font-medium">Youth with specific needs (Select all that apply)</Label>
-                <div className="space-y-2 mt-2">
-                  {[
-                    'Person w/ Disability',
-                    'Children in conflict w/ law',
-                    'Indigenous People'
-                  ].map((need) => (
-                    <div key={need} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={need}
-                        checked={formData.youthSpecificNeeds.includes(need)}
-                        onCheckedChange={(checked) => 
-                          handleArrayChange('youthSpecificNeeds', need, checked as boolean)
-                        }
-                      />
-                      <Label htmlFor={need}>{need}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Solo Parent */}
+              {/* Solo Parent - Always show */}
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="soloParent"
                   checked={formData.soloParent}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setFormData(prev => ({ ...prev, soloParent: checked as boolean }))
                   }
                 />
                 <Label htmlFor="soloParent" className="font-medium">Solo Parent</Label>
-              </div>
-            </CardContent>
-          </Card>
-        );
-
-      case 3:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Heart className="h-5 w-5" />
-                Interests & Activities
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Tell us about your hobbies and activities (Optional - helps us plan better programs)
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Sports */}
-              <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-200/50">
-                <Label className="text-base font-medium flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-blue-600" />
-                  Sports & Physical Activities
-                </Label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Select sports you enjoy playing or would like to participate in
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    { value: 'Basketball', desc: 'Team sport, very popular' },
-                    { value: 'Volleyball', desc: 'Team sport, indoor/outdoor' },
-                    { value: 'Badminton', desc: 'Racket sport, singles/doubles' },
-                    { value: "Other's", desc: 'Specify other sports you enjoy' }
-                  ].map((sport) => (
-                    <div key={sport.value} className="flex items-start space-x-2 p-2 rounded bg-white/50">
-                      <Checkbox
-                        id={sport.value}
-                        checked={formData.sports.includes(sport.value)}
-                        onCheckedChange={(checked) => 
-                          handleArrayChange('sports', sport.value, checked as boolean)
-                        }
-                        className="mt-1"
-                      />
-                      <div>
-                        <Label htmlFor={sport.value} className="font-medium">{sport.value}</Label>
-                        <p className="text-xs text-muted-foreground">{sport.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {formData.sports.includes("Other's") && (
-                  <div className="mt-4">
-                    <Label htmlFor="sportsOtherSpecify">Please specify other sports:</Label>
-                    <Input
-                      id="sportsOtherSpecify"
-                      placeholder="e.g., Swimming, Running, Boxing, Table Tennis"
-                      value={formData.sportsOtherSpecify}
-                      onChange={(e) => handleInputChange('sportsOtherSpecify', e.target.value)}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Hobbies */}
-              <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-200/50">
-                <Label className="text-base font-medium flex items-center gap-2">
-                  <Heart className="h-4 w-4 text-purple-600" />
-                  Hobbies & Creative Activities
-                </Label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Select activities you enjoy doing in your free time
-                </p>
-                <div className="space-y-3">
-                  {[
-                    { value: 'Dancing', desc: 'Traditional, modern, or any dance style' },
-                    { value: 'Arts & Crafts', desc: 'Drawing, painting, handicrafts, DIY projects' },
-                    { value: 'News Writing, Photography, Cartoonist', desc: 'Media, journalism, visual arts' },
-                    { value: 'Cooking, Baking', desc: 'Culinary arts, food preparation' }
-                  ].map((hobby) => (
-                    <div key={hobby.value} className="flex items-start space-x-2 p-2 rounded bg-white/50">
-                      <Checkbox
-                        id={hobby.value}
-                        checked={formData.hobbies.includes(hobby.value)}
-                        onCheckedChange={(checked) => 
-                          handleArrayChange('hobbies', hobby.value, checked as boolean)
-                        }
-                        className="mt-1"
-                      />
-                      <div>
-                        <Label htmlFor={hobby.value} className="font-medium">{hobby.value}</Label>
-                        <p className="text-xs text-muted-foreground">{hobby.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -1130,30 +808,30 @@ export default function YouthRegistration() {
           <ThemeToggle />
         </div>
 
-        {/* Logo & Title */}
+        {/* Main Content */}
         <div className="text-center mb-8">
-          <Logo size="lg" showText />
-          <h1 className="text-3xl font-bold mt-4 mb-2">Youth Registration</h1>
+          <Logo size="md" showText />
+          <h1 className="text-3xl font-bold mt-4 mb-2">Registration</h1>
           <p className="text-muted-foreground">
-            Complete your KK profiling in 3 simple steps
+            Register as a community member
           </p>
         </div>
 
-        {/* Stepper */}
+        {/* Progress Steps */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center space-x-4">
             {STEPS.map((step, index) => {
+              const isCompleted = step.id < currentStep;
+              const isActive = step.id === currentStep;
               const Icon = step.icon;
-              const isActive = currentStep === step.id;
-              const isCompleted = currentStep > step.id;
-              
+
               return (
                 <div key={step.id} className="flex items-center">
                   <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                    isCompleted 
-                      ? 'bg-primary border-primary text-primary-foreground' 
-                      : isActive 
-                        ? 'border-primary text-primary' 
+                    isCompleted
+                      ? 'bg-primary border-primary text-primary-foreground'
+                      : isActive
+                        ? 'border-primary text-primary'
                         : 'border-muted-foreground text-muted-foreground'
                   }`}>
                     {isCompleted ? (
@@ -1180,25 +858,23 @@ export default function YouthRegistration() {
           </div>
         </div>
 
-        {/* Progress Indicator */}
+        {/* Form Container */}
         <div className="bg-muted/30 p-4 rounded-lg mb-6">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Step {currentStep} of 3</span>
+            <span className="font-medium">Step {currentStep} of {STEPS.length}</span>
             <span className="text-muted-foreground">
-              {currentStep === 1 && 'Personal Information'}
-              {currentStep === 2 && 'Background & Demographics'}
-              {currentStep === 3 && 'Interests & Activities'}
+              {Math.round((currentStep / STEPS.length) * 100)}% Complete
             </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2 mt-2">
             <div 
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / 3) * 100}%` }}
+              className="bg-primary h-2 rounded-full transition-all duration-300" 
+              style={{ width: `${(currentStep / STEPS.length) * 100}%` }}
             />
           </div>
         </div>
 
-        {/* Step Content */}
+        {/* Form Content */}
         {renderStepContent()}
 
         {/* Navigation Buttons */}
@@ -1212,147 +888,121 @@ export default function YouthRegistration() {
             <ArrowLeft className="h-4 w-4" />
             Previous
           </Button>
-          
+
           <Button
-            onClick={handleNext}
-            disabled={!validateStep(currentStep)}
+            onClick={currentStep === STEPS.length ? handleNext : handleNext}
             className="gap-2"
           >
-            {currentStep === 3 ? 'Review & Submit' : 'Next'}
+            {currentStep === STEPS.length ? 'Review & Submit' : 'Next'}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
+      </div>
 
-        {/* Informed Consent Modal */}
-        <Dialog open={showConsentModal} onOpenChange={setShowConsentModal}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl flex items-center justify-center gap-2">
-                <FileText className="h-6 w-6" />
-                INFORMED CONSENT
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-6 p-4">
-              {/* Research Details */}
-              <div className="bg-muted/30 p-4 rounded-lg">
-                <p className="font-semibold">Title of Research:</p>
-                <p className="mb-2">Katipunan ng Kabataan Profiling (KK Profiling)</p>
-                
-                <p className="font-semibold">Consulting Agency:</p>
-                <p>National Youth Commission (NYC)<br />Quezon City, Philippines</p>
-              </div>
+      {/* Consent Modal */}
+      <Dialog open={showConsentModal} onOpenChange={setShowConsentModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center justify-center gap-2">
+              <FileText className="h-6 w-6" />
+              Informed Consent
+            </DialogTitle>
+          </DialogHeader>
 
-              {/* Sections */}
+          <div className="space-y-6 p-4">
+            <div className="bg-muted/30 p-4 rounded-lg">
+              <p className="font-semibold">Title of Research:</p>
+              <p className="mb-2">Community Profiling and Registration</p>
+
+              <p className="font-semibold">Purpose:</p>
+              <p className="mb-2">This system is designed to help our barangay community better serve residents by collecting demographic information and understanding community needs.</p>
+
+              <p className="font-semibold">Consulting Agency:</p>
+              <p className="mb-2">Barangay Hall Daraga, Albay</p>
+
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
-                    1. Purpose of the Study
-                  </h3>
-                  <p className="text-sm leading-relaxed">
-                    The Profiling aims to gather information and data of the Katipunan ng Kabataan members. 
-                    The information that will be gathered in the KK Profiling will be stored to the upcoming 
-                    SK Portal and will only be used for the purpose of database management handled by the 
-                    National Youth Commission.
-                  </p>
-                </div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  1. Voluntary Participation
+                </h3>
+                <p className="text-sm leading-relaxed">
+                  Your participation in this registration is completely voluntary. You have the right to withdraw at any time without any consequences. By completing this registration, you consent to participate in the community profiling.
+                </p>
 
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-primary" />
-                    2. Terms and Duration of Participation
-                  </h3>
-                  <p className="text-sm leading-relaxed">
-                    You are asked to join the study as a participant in the KK Profiling. The conduct of the 
-                    profiling will take 2 to 3 hours per Barangay; the data will serve as an updated National 
-                    database of the Katipunan ng Kabataan member in the Philippines.
-                  </p>
-                </div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                  2. Confidentiality
+                </h3>
+                <p className="text-sm leading-relaxed">
+                  All information you provide will be kept confidential and used solely for the purposes of community planning and service delivery. Personal information will not be shared with external parties without your consent.
+                </p>
 
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                    3. Risks/Confidentiality
-                  </h3>
-                  <p className="text-sm leading-relaxed">
-                    Your participation in the study will be treated with utmost confidentiality. Any information 
-                    collected from you will be used in the Database management. Also, your safety is our primary 
-                    concern. The profiling ensures that there will be no risk to encounter during the process of 
-                    data collection.
-                  </p>
-                </div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  3. Use of Information
+                </h3>
+                <p className="text-sm leading-relaxed">
+                  The information you provide will be used to improve community services, plan programs that meet residents' needs, and communicate relevant information to you as a community member.
+                </p>
 
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">4. Compensation</h3>
-                  <p className="text-sm leading-relaxed">
-                    The activity is in accordance with RA No. 10742 and the policy/guidelines of the Department 
-                    of Interior and Local Government and the National Youth Commission. There will be no monetary 
-                    remuneration other than our sincerest gratitude for your time and effort. Your participation 
-                    will be highly appreciated.
-                  </p>
-                </div>
+                <h3 className="text-lg font-semibold mb-3">4. Data Storage</h3>
+                <p className="text-sm leading-relaxed">
+                  Your data will be securely stored and maintained according to applicable data protection regulations. You may request access to, correction of, or deletion of your personal information at any time.
+                </p>
 
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">5. Inquiries</h3>
-                  <p className="text-sm leading-relaxed mb-2">
-                    If you have any question/s on the administration of the survey question or the study in 
-                    general, please do not hesitate to contact the research proponent through the following 
-                    information:
-                  </p>
-                  <p className="text-sm font-medium">
-                    Official Facebook Page: Sangguniang Kabataan ng Barangay Binitayan
-                  </p>
-                </div>
-              </div>
+                <h3 className="text-lg font-semibold mb-3">5. Inquiries</h3>
+                <p className="text-sm leading-relaxed mb-2">
+                  For questions about this registration or your rights as a participant, please contact the Barangay Hall.
+                </p>
 
-              {/* Consent Agreement */}
-              <div className="border-2 border-primary/20 bg-primary/5 p-6 rounded-lg">
-                <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="consent_agreement"
-                    checked={consentAgreed}
-                    onCheckedChange={(checked) => setConsentAgreed(checked as boolean)}
-                    className="mt-1"
-                  />
-                  <label 
-                    htmlFor="consent_agreement" 
-                    className="text-sm font-medium leading-relaxed cursor-pointer"
-                  >
-                    I have read and understood the above information. I voluntarily agree to participate 
-                    in this study and give my consent for the collection and use of my personal information 
-                    as described above.
-                  </label>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex justify-end gap-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowConsentModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!consentAgreed || loading}
-                  className="px-8"
-                >
-                  {loading ? (
-                    <>
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                      Submitting...
-                    </>
-                  ) : (
-                    'Submit Registration'
-                  )}
-                </Button>
+                <p className="text-sm font-medium">
+                  By clicking "I Agree", you confirm that you have read and understood this consent form and agree to participate in the community profiling.
+                </p>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+
+            <div className="border-2 border-primary/20 bg-primary/5 p-6 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="consent"
+                  checked={consentAgreed}
+                  onCheckedChange={(checked) => setConsentAgreed(checked as boolean)}
+                  className="mt-1"
+                />
+                <label
+                  htmlFor="consent"
+                  className="text-sm font-medium leading-relaxed cursor-pointer"
+                >
+                  I agree to the terms and consent to participate in the community registration process
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowConsentModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={!consentAgreed || loading}
+                className="px-8"
+              >
+                {loading ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Registration'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
