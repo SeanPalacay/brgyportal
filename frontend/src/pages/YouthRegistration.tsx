@@ -825,64 +825,65 @@ export default function YouthRegistration() {
               {/* Voter Information - Only show for 30+ */}
               {isAgeThirtyOrAbove && (
                 <div className="space-y-4">
-                <Label className="text-base font-medium flex items-center gap-2">
-                  <Vote className="h-4 w-4" />
-                  Voter Information
-                </Label>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <Label className="font-medium">Registered SK Voter? *</Label>
-                    <RadioGroup
-                      value={formData.registeredSkVoter}
-                      onValueChange={(value) => handleInputChange('registeredSkVoter', value)}
-                      className="flex gap-4 mt-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="YES" id="sk-yes" />
-                        <Label htmlFor="sk-yes">YES</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="NO" id="sk-no" />
-                        <Label htmlFor="sk-no">NO</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Vote className="h-4 w-4" />
+                    Voter Information
+                  </Label>
 
-                  <div>
-                    <Label className="font-medium">Registered National Voter? *</Label>
-                    <RadioGroup
-                      value={formData.registeredNationalVoter}
-                      onValueChange={(value) => handleInputChange('registeredNationalVoter', value)}
-                      className="flex gap-4 mt-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="YES" id="national-yes" />
-                        <Label htmlFor="national-yes">YES</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="NO" id="national-no" />
-                        <Label htmlFor="national-no">NO</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <Label className="font-medium">Registered SK Voter? *</Label>
+                      <RadioGroup
+                        value={formData.registeredSkVoter}
+                        onValueChange={(value) => handleInputChange('registeredSkVoter', value)}
+                        className="flex gap-4 mt-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="YES" id="sk-yes" />
+                          <Label htmlFor="sk-yes">YES</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="NO" id="sk-no" />
+                          <Label htmlFor="sk-no">NO</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
 
-                  <div>
-                    <Label className="font-medium">Did you vote last SK Election? *</Label>
-                    <RadioGroup
-                      value={formData.votedLastSkElection}
-                      onValueChange={(value) => handleInputChange('votedLastSkElection', value)}
-                      className="flex gap-4 mt-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="YES" id="voted-yes" />
-                        <Label htmlFor="voted-yes">YES</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="NO" id="voted-no" />
-                        <Label htmlFor="voted-no">NO</Label>
-                      </div>
-                    </RadioGroup>
+                    <div>
+                      <Label className="font-medium">Registered National Voter? *</Label>
+                      <RadioGroup
+                        value={formData.registeredNationalVoter}
+                        onValueChange={(value) => handleInputChange('registeredNationalVoter', value)}
+                        className="flex gap-4 mt-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="YES" id="national-yes" />
+                          <Label htmlFor="national-yes">YES</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="NO" id="national-no" />
+                          <Label htmlFor="national-no">NO</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    <div>
+                      <Label className="font-medium">Did you vote last SK Election? *</Label>
+                      <RadioGroup
+                        value={formData.votedLastSkElection}
+                        onValueChange={(value) => handleInputChange('votedLastSkElection', value)}
+                        className="flex gap-4 mt-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="YES" id="voted-yes" />
+                          <Label htmlFor="voted-yes">YES</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="NO" id="voted-no" />
+                          <Label htmlFor="voted-no">NO</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
                   </div>
                 </div>
               )}
