@@ -20,6 +20,8 @@ import {
   GraduationCap,
   Briefcase,
   Vote,
+  Heart,
+  Trophy,
   FileText,
   CheckCircle2,
   Shield,
@@ -51,19 +53,26 @@ interface ProfileFormData {
   password: string;
   confirmPassword: string;
 
-  // Additional adult-specific fields
+  // Demographic Characteristics (for under-30 users)
+  youthAgeGroup: string;
+  youthClassification: string[];
+  educationalBackground: string;
   workStatus: string;
   registeredSkVoter: string;
   registeredNationalVoter: string;
   votedLastSkElection: string;
+  attendedSkAssembly: string;
+  assemblyAttendanceCount: string;
+  notAttendedReason: string;
   lgbtqCommunity: string;
+  youthSpecificNeeds: string[];
   soloParent: boolean;
-}
 
-const STEPS = [
-  { id: 1, title: 'Personal Profile', icon: User },
-  { id: 2, title: 'Demographics', icon: GraduationCap },
-];
+  // Interests (for under-30 users)
+  sports: string[];
+  sportsOtherSpecify: string;
+  hobbies: string[];
+}
 
 const PHILIPPINE_REGIONS = [
   'Region I - Ilocos Region',
@@ -109,12 +118,22 @@ export default function YouthRegistration() {
     emailAddress: '',
     password: '',
     confirmPassword: '',
+    youthAgeGroup: '',
+    youthClassification: [],
+    educationalBackground: '',
     workStatus: '',
     registeredSkVoter: '',
     registeredNationalVoter: '',
     votedLastSkElection: '',
+    attendedSkAssembly: '',
+    assemblyAttendanceCount: '',
+    notAttendedReason: '',
     lgbtqCommunity: '',
-    soloParent: false
+    youthSpecificNeeds: [],
+    soloParent: false,
+    sports: [],
+    sportsOtherSpecify: '',
+    hobbies: []
   });
 
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -141,13 +160,34 @@ export default function YouthRegistration() {
   // Check if user is 30 or above
   const isAgeThirtyOrAbove = parseInt(formData.age) >= 30;
 
+  // Define steps differently based on age
+  const steps = isAgeThirtyOrAbove ? [
+    { id: 1, title: 'Personal Profile', icon: User },
+    { id: 2, title: 'Additional Information', icon: GraduationCap },
+  ] : [
+    { id: 1, title: 'Personal Profile', icon: User },
+    { id: 2, title: 'Demographics', icon: GraduationCap },
+    { id: 3, title: 'Interests', icon: Heart }
+  ];
+
+  const totalSteps = steps.length;
+
   const handleInputChange = (field: keyof ProfileFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleArrayChange = (field: keyof ProfileFormData, value: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: checked
+        ? [...(prev[field] as string[]), value]
+        : (prev[field] as string[]).filter(item => item !== value)
+    }));
+  };
+
   const validateStep = (step: number): boolean => {
     switch (step) {
-      case 1:
+      case 1: // Personal Profile - required for all users
         return !!(
           formData.lastName &&
           formData.givenName &&
@@ -167,15 +207,33 @@ export default function YouthRegistration() {
           formData.confirmPassword &&
           proofFile
         );
-      case 2:
-        return !!(
-          // Conditionally require work status and voter info for 30+ users
-          (isAgeThirtyOrAbove ? 
-            (formData.workStatus && 
-             formData.registeredSkVoter && 
-             formData.registeredNationalVoter && 
-             formData.votedLastSkElection) : true)
-        );
+      case 2: // Additional Information - different content based on age
+        if (isAgeThirtyOrAbove) {
+          // For 30+ users: Work Status and Voter Information
+          return !!(
+            formData.workStatus &&
+            formData.registeredSkVoter &&
+            formData.registeredNationalVoter &&
+            formData.votedLastSkElection
+          );
+        } else {
+          // For under-30 users: Youth Demographics
+          return !!(
+            formData.youthAgeGroup &&
+            formData.educationalBackground &&
+            formData.workStatus &&
+            formData.registeredSkVoter &&
+            formData.registeredNationalVoter &&
+            formData.votedLastSkElection &&
+            formData.attendedSkAssembly &&
+            formData.lgbtqCommunity
+          );
+        }
+      case 3: // Interests - only for under-30 users
+        if (!isAgeThirtyOrAbove) {
+          return true; // Interests are optional
+        }
+        return false; // This step should not exist for 30+ users
       default:
         return false;
     }
@@ -226,7 +284,7 @@ export default function YouthRegistration() {
     }
 
     if (validateStep(currentStep)) {
-      if (currentStep === STEPS.length) {
+      if (currentStep === totalSteps) {
         setShowConsentModal(true);
       } else {
         setCurrentStep(prev => prev + 1);
@@ -274,12 +332,22 @@ export default function YouthRegistration() {
         sex: formData.sex,
         civilStatus: formData.civilStatus,
         religion: formData.religion,
+        youthAgeGroup: formData.youthAgeGroup,
+        youthClassification: formData.youthClassification,
+        educationalBackground: formData.educationalBackground,
         workStatus: formData.workStatus,
         registeredSkVoter: formData.registeredSkVoter === 'YES',
         registeredNationalVoter: formData.registeredNationalVoter === 'YES',
         votedLastSkElection: formData.votedLastSkElection === 'YES',
+        attendedSkAssembly: formData.attendedSkAssembly === 'YES',
+        assemblyAttendanceCount: formData.assemblyAttendanceCount,
+        notAttendedReason: formData.notAttendedReason,
         lgbtqCommunity: formData.lgbtqCommunity === 'YES',
-        soloParent: formData.soloParent
+        youthSpecificNeeds: formData.youthSpecificNeeds,
+        soloParent: formData.soloParent,
+        sports: formData.sports,
+        sportsOtherSpecify: formData.sportsOtherSpecify,
+        hobbies: formData.hobbies
       };
 
       formDataToSend.append('profile', JSON.stringify(profileData));
@@ -303,363 +371,364 @@ export default function YouthRegistration() {
   };
 
   const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Personal Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Name */}
-              <div className="space-y-4">
-                <Label className="text-base font-medium">Full Name</Label>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    if (isAgeThirtyOrAbove) {
+      // 30+ users: Personal Profile + Additional Information (Work Status & Voter Info)
+      switch (currentStep) {
+        case 1: // Personal Profile
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Personal Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Name */}
+                <div className="space-y-4">
+                  <Label className="text-base font-medium">Full Name</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Input
+                        id="lastName"
+                        placeholder="Dela Cruz"
+                        value={formData.lastName}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
+                          handleInputChange('lastName', value);
+                        }}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="givenName">Given Name *</Label>
+                      <Input
+                        id="givenName"
+                        placeholder="Juan"
+                        value={formData.givenName}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
+                          handleInputChange('givenName', value);
+                        }}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="middleName">Middle Name *</Label>
+                      <Input
+                        id="middleName"
+                        placeholder="Santos"
+                        value={formData.middleName}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
+                          handleInputChange('middleName', value);
+                        }}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="suffix">Suffix (Optional)</Label>
+                      <Input
+                        id="suffix"
+                        placeholder="Jr., Sr., III, IV"
+                        value={formData.suffix}
+                        onChange={(e) => handleInputChange('suffix', e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Leave blank if not applicable
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="space-y-4">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Address
+                  </Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="purokZone">Purok/Zone *</Label>
+                      <Input
+                        id="purokZone"
+                        placeholder="e.g., Purok 1, Zone 2"
+                        value={formData.purokZone}
+                        onChange={(e) => handleInputChange('purokZone', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="barangay">Barangay *</Label>
+                      <Input
+                        id="barangay"
+                        value={formData.barangay}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cityMunicipality">City/Municipality *</Label>
+                      <Input
+                        id="cityMunicipality"
+                        value={formData.cityMunicipality}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="province">Province *</Label>
+                      <Input
+                        id="province"
+                        value={formData.province}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="region">Region *</Label>
+                      <Input
+                        id="region"
+                        value={formData.region}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Birth Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Label htmlFor="birthday" className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Birthday *
+                    </Label>
                     <Input
-                      id="lastName"
-                      placeholder="Dela Cruz"
-                      value={formData.lastName}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
-                        handleInputChange('lastName', value);
-                      }}
+                      id="birthday"
+                      type="date"
+                      value={formData.birthday}
+                      onChange={(e) => handleInputChange('birthday', e.target.value)}
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="givenName">Given Name *</Label>
+                    <Label htmlFor="age">Age *</Label>
                     <Input
-                      id="givenName"
-                      placeholder="Juan"
-                      value={formData.givenName}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
-                        handleInputChange('givenName', value);
-                      }}
+                      id="age"
+                      type="number"
+                      min="15"
+                      value={formData.age}
+                      onChange={(e) => handleInputChange('age', e.target.value)}
                       required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="middleName">Middle Name *</Label>
-                    <Input
-                      id="middleName"
-                      placeholder="Santos"
-                      value={formData.middleName}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
-                        handleInputChange('middleName', value);
-                      }}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="suffix">Suffix (Optional)</Label>
-                    <Input
-                      id="suffix"
-                      placeholder="Jr., Sr., III, IV"
-                      value={formData.suffix}
-                      onChange={(e) => handleInputChange('suffix', e.target.value)}
+                      readOnly
+                      className="bg-muted"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Leave blank if not applicable
+                      Age is automatically calculated from birthday (15+ years old)
                     </p>
                   </div>
                 </div>
-              </div>
 
-              {/* Address */}
-              <div className="space-y-4">
-                <Label className="text-base font-medium flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Address
-                </Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="purokZone">Purok/Zone *</Label>
-                    <Input
-                      id="purokZone"
-                      placeholder="e.g., Purok 1, Zone 2"
-                      value={formData.purokZone}
-                      onChange={(e) => handleInputChange('purokZone', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="barangay">Barangay *</Label>
-                    <Input
-                      id="barangay"
-                      value={formData.barangay}
-                      readOnly
-                      className="bg-muted cursor-not-allowed"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cityMunicipality">City/Municipality *</Label>
-                    <Input
-                      id="cityMunicipality"
-                      value={formData.cityMunicipality}
-                      readOnly
-                      className="bg-muted cursor-not-allowed"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="province">Province *</Label>
-                    <Input
-                      id="province"
-                      value={formData.province}
-                      readOnly
-                      className="bg-muted cursor-not-allowed"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="region">Region *</Label>
-                    <Input
-                      id="region"
-                      value={formData.region}
-                      readOnly
-                      className="bg-muted cursor-not-allowed"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Birth Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Sex */}
                 <div>
-                  <Label htmlFor="birthday" className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Birthday *
-                  </Label>
-                  <Input
-                    id="birthday"
-                    type="date"
-                    value={formData.birthday}
-                    onChange={(e) => handleInputChange('birthday', e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="age">Age *</Label>
-                  <Input
-                    id="age"
-                    type="number"
-                    min="15"
-                    value={formData.age}
-                    onChange={(e) => handleInputChange('age', e.target.value)}
-                    required
-                    readOnly
-                    className="bg-muted"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Age is automatically calculated from birthday (15+ years old)
-                  </p>
-                </div>
-              </div>
-
-              {/* Sex */}
-              <div>
-                <Label className="text-base font-medium">Sex *</Label>
-                <RadioGroup
-                  value={formData.sex}
-                  onValueChange={(value) => handleInputChange('sex', value)}
-                  className="flex gap-6 mt-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Female" id="female" />
-                    <Label htmlFor="female">Female</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Male" id="male" />
-                    <Label htmlFor="male">Male</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {/* Civil Status */}
-              <div>
-                <Label className="text-base font-medium">Civil Status *</Label>
-                <RadioGroup
-                  value={formData.civilStatus}
-                  onValueChange={(value) => handleInputChange('civilStatus', value)}
-                  className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2"
-                >
-                  {['Single', 'Married', 'Widowed', 'Separated', 'Annulled', 'Live-in'].map((status) => (
-                    <div key={status} className="flex items-center space-x-2">
-                      <RadioGroupItem value={status} id={status.toLowerCase()} />
-                      <Label htmlFor={status.toLowerCase()}>{status}</Label>
+                  <Label className="text-base font-medium">Sex *</Label>
+                  <RadioGroup
+                    value={formData.sex}
+                    onValueChange={(value) => handleInputChange('sex', value)}
+                    className="flex gap-6 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Female" id="female" />
+                      <Label htmlFor="female">Female</Label>
                     </div>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              {/* Contact & Religion */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="religion">Religion *</Label>
-                  <Input
-                    id="religion"
-                    placeholder="e.g., Roman Catholic, Islam, Protestant"
-                    value={formData.religion}
-                    onChange={(e) => handleInputChange('religion', e.target.value)}
-                    required
-                  />
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Male" id="male" />
+                      <Label htmlFor="male">Male</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-                <div>
-                  <Label htmlFor="contactNumber">Contact Number *</Label>
-                  <Input
-                    id="contactNumber"
-                    type="tel"
-                    placeholder="09XX XXX XXXX"
-                    value={formData.contactNumber}
-                    onChange={(e) => {
-                      let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
 
-                      // Ensure it starts with 09
-                      if (value.length > 0 && !value.startsWith('09')) {
-                        if (value.startsWith('9')) {
-                          value = '0' + value;
-                        } else if (value.startsWith('63')) {
-                          value = '0' + value.substring(2);
-                        } else {
-                          value = '09' + value;
+                {/* Civil Status */}
+                <div>
+                  <Label className="text-base font-medium">Civil Status *</Label>
+                  <RadioGroup
+                    value={formData.civilStatus}
+                    onValueChange={(value) => handleInputChange('civilStatus', value)}
+                    className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2"
+                  >
+                    {['Single', 'Married', 'Widowed', 'Separated', 'Annulled', 'Live-in'].map((status) => (
+                      <div key={status} className="flex items-center space-x-2">
+                        <RadioGroupItem value={status} id={status.toLowerCase()} />
+                        <Label htmlFor={status.toLowerCase()}>{status}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                {/* Contact & Religion */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="religion">Religion *</Label>
+                    <Input
+                      id="religion"
+                      placeholder="e.g., Roman Catholic, Islam, Protestant"
+                      value={formData.religion}
+                      onChange={(e) => handleInputChange('religion', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contactNumber">Contact Number *</Label>
+                    <Input
+                      id="contactNumber"
+                      type="tel"
+                      placeholder="09XX XXX XXXX"
+                      value={formData.contactNumber}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+
+                        // Ensure it starts with 09
+                        if (value.length > 0 && !value.startsWith('09')) {
+                          if (value.startsWith('9')) {
+                            value = '0' + value;
+                          } else if (value.startsWith('63')) {
+                            value = '0' + value.substring(2);
+                          } else {
+                            value = '09' + value;
+                          }
                         }
-                      }
 
-                      // Limit to 11 digits (09XXXXXXXXX)
-                      if (value.length > 11) {
-                        value = value.substring(0, 11);
-                      }
+                        // Limit to 11 digits (09XXXXXXXXX)
+                        if (value.length > 11) {
+                          value = value.substring(0, 11);
+                        }
 
-                      handleInputChange('contactNumber', value);
-                    }}
-                    pattern="09[0-9]{9}"
-                    maxLength={11}
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Enter Philippine mobile number starting with 09 (e.g., 09123456789)
-                  </p>
+                        handleInputChange('contactNumber', value);
+                      }}
+                      pattern="09[0-9]{9}"
+                      maxLength={11}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enter Philippine mobile number starting with 09 (e.g., 09123456789)
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              {/* Email & Password */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="emailAddress">Email Address *</Label>
-                  <Input
-                    id="emailAddress"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={formData.emailAddress}
-                    onChange={(e) => handleInputChange('emailAddress', e.target.value.toLowerCase())}
-                    required
-                  />
+                {/* Email & Password */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="emailAddress">Email Address *</Label>
+                    <Input
+                      id="emailAddress"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={formData.emailAddress}
+                      onChange={(e) => handleInputChange('emailAddress', e.target.value.toLowerCase())}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Minimum 8 characters"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      minLength={8}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Password must be at least 8 characters long
+                    </p>
+                  </div>
                 </div>
+
                 <div>
-                  <Label htmlFor="password">Password *</Label>
+                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
                   <Input
-                    id="password"
+                    id="confirmPassword"
                     type="password"
-                    placeholder="Minimum 8 characters"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    minLength={8}
+                    placeholder="Re-enter your password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                     required
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Password must be at least 8 characters long
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Re-enter your password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  required
-                />
-                {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Passwords do not match
-                  </p>
-                )}
-              </div>
-
-              {/* Proof of Residence */}
-              <div className="space-y-2">
-                <Label htmlFor="proofOfResidence" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Proof of Residence *
-                </Label>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 hover:border-muted-foreground/50 transition-colors">
-                  <Input
-                    id="proofOfResidence"
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (file.size > 5 * 1024 * 1024) {
-                          toast.error('File size must be less than 5MB');
-                          return;
-                        }
-                        setProofFile(file);
-                      }
-                    }}
-                    required
-                    className="cursor-pointer"
-                  />
-                  {proofFile && (
-                    <div className="flex items-center gap-2 text-sm text-green-600 mt-2">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>{proofFile.name}</span>
-                    </div>
+                  {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Passwords do not match
+                    </p>
                   )}
                 </div>
-                <div className="bg-muted/30 p-3 rounded-lg">
-                  <p className="text-xs text-muted-foreground font-medium mb-1">Accepted Documents:</p>
-                  <p className="text-xs text-muted-foreground">
-                    • Barangay Certificate/Clearance • Utility Bills (Electric, Water, Internet)
-                    <br />• Postal ID • Driver's License • Voter's ID • Any government-issued ID
-                    <br />• Bank Statement • School Enrollment Form
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    <strong>File Requirements:</strong> JPG, PNG, or PDF format • Maximum 5MB
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
 
-      case 2:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GraduationCap className="h-5 w-5" />
-                Additional Information
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Additional information for adults
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Work Status - Only show for 30+ */}
-              {isAgeThirtyOrAbove && (
+                {/* Proof of Residence */}
+                <div className="space-y-2">
+                  <Label htmlFor="proofOfResidence" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Proof of Residence *
+                  </Label>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 hover:border-muted-foreground/50 transition-colors">
+                    <Input
+                      id="proofOfResidence"
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            toast.error('File size must be less than 5MB');
+                            return;
+                          }
+                          setProofFile(file);
+                        }
+                      }}
+                      required
+                      className="cursor-pointer"
+                    />
+                    {proofFile && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 mt-2">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>{proofFile.name}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-muted/30 p-3 rounded-lg">
+                    <p className="text-xs text-muted-foreground font-medium mb-1">Accepted Documents:</p>
+                    <p className="text-xs text-muted-foreground">
+                      • Barangay Certificate/Clearance • Utility Bills (Electric, Water, Internet)
+                      <br />• Postal ID • Driver's License • Voter's ID • Any government-issued ID
+                      <br />• Bank Statement • School Enrollment Form
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      <strong>File Requirements:</strong> JPG, PNG, or PDF format • Maximum 5MB
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+
+        case 2: // Additional Information for 30+ (Work Status & Voter Information)
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5" />
+                  Additional Information
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Additional information for adult community members
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Work Status */}
                 <div>
                   <Label className="text-base font-medium flex items-center gap-2">
                     <Briefcase className="h-4 w-4" />
@@ -684,10 +753,8 @@ export default function YouthRegistration() {
                     ))}
                   </RadioGroup>
                 </div>
-              )}
 
-              {/* Voter Information - Only show for 30+ */}
-              {isAgeThirtyOrAbove && (
+                {/* Voter Information */}
                 <div className="space-y-4">
                   <Label className="text-base font-medium flex items-center gap-2">
                     <Vote className="h-4 w-4" />
@@ -750,44 +817,801 @@ export default function YouthRegistration() {
                     </div>
                   </div>
                 </div>
-              )}
 
-              {/* LGBTQ+ - Always show */}
-              <div>
-                <Label className="font-medium">Are you part of LGBTQ+ Community? *</Label>
-                <RadioGroup
-                  value={formData.lgbtqCommunity}
-                  onValueChange={(value) => handleInputChange('lgbtqCommunity', value)}
-                  className="flex gap-4 mt-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="YES" id="lgbtq-yes" />
-                    <Label htmlFor="lgbtq-yes">YES</Label>
+                {/* LGBTQ+ */}
+                <div>
+                  <Label className="font-medium">Are you part of LGBTQ+ Community? *</Label>
+                  <RadioGroup
+                    value={formData.lgbtqCommunity}
+                    onValueChange={(value) => handleInputChange('lgbtqCommunity', value)}
+                    className="flex gap-4 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="YES" id="lgbtq-yes" />
+                      <Label htmlFor="lgbtq-yes">YES</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="NO" id="lgbtq-no" />
+                      <Label htmlFor="lgbtq-no">NO</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* Solo Parent */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="soloParent"
+                    checked={formData.soloParent}
+                    onCheckedChange={(checked) =>
+                      setFormData(prev => ({ ...prev, soloParent: checked as boolean }))
+                    }
+                  />
+                  <Label htmlFor="soloParent" className="font-medium">Solo Parent</Label>
+                </div>
+              </CardContent>
+            </Card>
+          );
+
+        default:
+          return null;
+      }
+    } else {
+      // Under-30 users: Full youth registration form
+      switch (currentStep) {
+        case 1: // Personal Profile
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Personal Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Name */}
+                <div className="space-y-4">
+                  <Label className="text-base font-medium">Full Name</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Input
+                        id="lastName"
+                        placeholder="Dela Cruz"
+                        value={formData.lastName}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
+                          handleInputChange('lastName', value);
+                        }}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="givenName">Given Name *</Label>
+                      <Input
+                        id="givenName"
+                        placeholder="Juan"
+                        value={formData.givenName}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
+                          handleInputChange('givenName', value);
+                        }}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="middleName">Middle Name *</Label>
+                      <Input
+                        id="middleName"
+                        placeholder="Santos"
+                        value={formData.middleName}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
+                          handleInputChange('middleName', value);
+                        }}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="suffix">Suffix (Optional)</Label>
+                      <Input
+                        id="suffix"
+                        placeholder="Jr., Sr., III, IV"
+                        value={formData.suffix}
+                        onChange={(e) => handleInputChange('suffix', e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Leave blank if not applicable
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="NO" id="lgbtq-no" />
-                    <Label htmlFor="lgbtq-no">NO</Label>
+                </div>
+
+                {/* Address */}
+                <div className="space-y-4">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Address
+                  </Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="purokZone">Purok/Zone *</Label>
+                      <Input
+                        id="purokZone"
+                        placeholder="e.g., Purok 1, Zone 2"
+                        value={formData.purokZone}
+                        onChange={(e) => handleInputChange('purokZone', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="barangay">Barangay *</Label>
+                      <Input
+                        id="barangay"
+                        value={formData.barangay}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cityMunicipality">City/Municipality *</Label>
+                      <Input
+                        id="cityMunicipality"
+                        value={formData.cityMunicipality}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="province">Province *</Label>
+                      <Input
+                        id="province"
+                        value={formData.province}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="region">Region *</Label>
+                      <Input
+                        id="region"
+                        value={formData.region}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                        required
+                      />
+                    </div>
                   </div>
-                </RadioGroup>
-              </div>
+                </div>
 
-              {/* Solo Parent - Always show */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="soloParent"
-                  checked={formData.soloParent}
-                  onCheckedChange={(checked) =>
-                    setFormData(prev => ({ ...prev, soloParent: checked as boolean }))
-                  }
-                />
-                <Label htmlFor="soloParent" className="font-medium">Solo Parent</Label>
-              </div>
-            </CardContent>
-          </Card>
-        );
+                {/* Birth Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="birthday" className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Birthday *
+                    </Label>
+                    <Input
+                      id="birthday"
+                      type="date"
+                      value={formData.birthday}
+                      onChange={(e) => handleInputChange('birthday', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="age">Age *</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      min="15"
+                      value={formData.age}
+                      onChange={(e) => handleInputChange('age', e.target.value)}
+                      required
+                      readOnly
+                      className="bg-muted"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Age is automatically calculated from birthday (15-30 years old)
+                    </p>
+                  </div>
+                </div>
 
-      default:
-        return null;
+                {/* Sex */}
+                <div>
+                  <Label className="text-base font-medium">Sex *</Label>
+                  <RadioGroup
+                    value={formData.sex}
+                    onValueChange={(value) => handleInputChange('sex', value)}
+                    className="flex gap-6 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Female" id="female" />
+                      <Label htmlFor="female">Female</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Male" id="male" />
+                      <Label htmlFor="male">Male</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* Civil Status */}
+                <div>
+                  <Label className="text-base font-medium">Civil Status *</Label>
+                  <RadioGroup
+                    value={formData.civilStatus}
+                    onValueChange={(value) => handleInputChange('civilStatus', value)}
+                    className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2"
+                  >
+                    {['Single', 'Married', 'Widowed', 'Separated', 'Annulled', 'Live-in'].map((status) => (
+                      <div key={status} className="flex items-center space-x-2">
+                        <RadioGroupItem value={status} id={status.toLowerCase()} />
+                        <Label htmlFor={status.toLowerCase()}>{status}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                {/* Contact & Religion */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="religion">Religion *</Label>
+                    <Input
+                      id="religion"
+                      placeholder="e.g., Roman Catholic, Islam, Protestant"
+                      value={formData.religion}
+                      onChange={(e) => handleInputChange('religion', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contactNumber">Contact Number *</Label>
+                    <Input
+                      id="contactNumber"
+                      type="tel"
+                      placeholder="09XX XXX XXXX"
+                      value={formData.contactNumber}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+
+                        // Ensure it starts with 09
+                        if (value.length > 0 && !value.startsWith('09')) {
+                          if (value.startsWith('9')) {
+                            value = '0' + value;
+                          } else if (value.startsWith('63')) {
+                            value = '0' + value.substring(2);
+                          } else {
+                            value = '09' + value;
+                          }
+                        }
+
+                        // Limit to 11 digits (09XXXXXXXXX)
+                        if (value.length > 11) {
+                          value = value.substring(0, 11);
+                        }
+
+                        handleInputChange('contactNumber', value);
+                      }}
+                      pattern="09[0-9]{9}"
+                      maxLength={11}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enter Philippine mobile number starting with 09 (e.g., 09123456789)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Email & Password */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="emailAddress">Email Address *</Label>
+                    <Input
+                      id="emailAddress"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={formData.emailAddress}
+                      onChange={(e) => handleInputChange('emailAddress', e.target.value.toLowerCase())}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Minimum 8 characters"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      minLength={8}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Password must be at least 8 characters long
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Re-enter your password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    required
+                  />
+                  {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Passwords do not match
+                    </p>
+                  )}
+                </div>
+
+                {/* Proof of Residence */}
+                <div className="space-y-2">
+                  <Label htmlFor="proofOfResidence" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Proof of Residence *
+                  </Label>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 hover:border-muted-foreground/50 transition-colors">
+                    <Input
+                      id="proofOfResidence"
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            toast.error('File size must be less than 5MB');
+                            return;
+                          }
+                          setProofFile(file);
+                        }
+                      }}
+                      required
+                      className="cursor-pointer"
+                    />
+                    {proofFile && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 mt-2">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>{proofFile.name}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-muted/30 p-3 rounded-lg">
+                    <p className="text-xs text-muted-foreground font-medium mb-1">Accepted Documents:</p>
+                    <p className="text-xs text-muted-foreground">
+                      • Barangay Certificate/Clearance • Utility Bills (Electric, Water, Internet)
+                      <br />• Postal ID • Driver's License • Voter's ID • Any government-issued ID
+                      <br />• Bank Statement • School Enrollment Form
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      <strong>File Requirements:</strong> JPG, PNG, or PDF format • Maximum 5MB
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+
+        case 2: // Youth Demographics
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5" />
+                  Demographic Characteristics
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Help us understand your background and current situation
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Youth Age Group */}
+                <div className="bg-muted/30 p-4 rounded-lg">
+                  <Label className="text-base font-medium">Youth Age Group *</Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Select the age group that matches your current age
+                  </p>
+                  <RadioGroup
+                    value={formData.youthAgeGroup}
+                    onValueChange={(value) => handleInputChange('youthAgeGroup', value)}
+                    className="space-y-2"
+                  >
+                    {[
+                      'Child Youth (15-17 yrs old)',
+                      'Core Youth (18-24 yrs old)',
+                      'Young Adult (25-30 yrs old)'
+                    ].map((group) => (
+                      <div key={group} className="flex items-center space-x-2">
+                        <RadioGroupItem value={group} id={group} />
+                        <Label htmlFor={group}>{group}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                {/* Youth Classification */}
+                <div>
+                  <Label className="text-base font-medium">Youth Classification *</Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Select all categories that describe your current situation
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { value: 'In-school youth', desc: 'Currently enrolled in school' },
+                      { value: 'Out of school youth', desc: 'Not currently in school' },
+                      { value: 'Working Youth', desc: 'Currently employed or working' },
+                      { value: 'Teenage Parent', desc: 'Parent under 20 years old' }
+                    ].map((classification) => (
+                      <div key={classification.value} className="flex items-start space-x-2 p-2 rounded border">
+                        <Checkbox
+                          id={classification.value}
+                          checked={formData.youthClassification.includes(classification.value)}
+                          onCheckedChange={(checked) =>
+                            handleArrayChange('youthClassification', classification.value, checked as boolean)
+                          }
+                          className="mt-1"
+                        />
+                        <div>
+                          <Label htmlFor={classification.value} className="font-medium">{classification.value}</Label>
+                          <p className="text-xs text-muted-foreground">{classification.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Educational Background */}
+                <div>
+                  <Label htmlFor="educationalBackground">Educational Background *</Label>
+                  <Select
+                    value={formData.educationalBackground}
+                    onValueChange={(value) => handleInputChange('educationalBackground', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Educational Background" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        'Elementary Level',
+                        'Elementary Graduate',
+                        'High School Level',
+                        'High School Graduate',
+                        'Vocational Graduate',
+                        'College Level',
+                        'College Graduate',
+                        'Masters Level',
+                        'Masters Graduate',
+                        'Doctorate Level',
+                        'Doctorate Graduate'
+                      ].map((education) => (
+                        <SelectItem key={education} value={education}>
+                          {education}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Work Status */}
+                <div>
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Briefcase className="h-4 w-4" />
+                    Work Status *
+                  </Label>
+                  <RadioGroup
+                    value={formData.workStatus}
+                    onValueChange={(value) => handleInputChange('workStatus', value)}
+                    className="space-y-2 mt-2"
+                  >
+                    {[
+                      'Employed',
+                      'Unemployed',
+                      'Self-employed',
+                      'Currently looking for a job',
+                      'Not interested in looking for a job'
+                    ].map((status) => (
+                      <div key={status} className="flex items-center space-x-2">
+                        <RadioGroupItem value={status} id={status} />
+                        <Label htmlFor={status}>{status}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                {/* Voter Information */}
+                <div className="space-y-4">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Vote className="h-4 w-4" />
+                    Voter Information
+                  </Label>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <Label className="font-medium">Registered SK Voter? *</Label>
+                      <RadioGroup
+                        value={formData.registeredSkVoter}
+                        onValueChange={(value) => handleInputChange('registeredSkVoter', value)}
+                        className="flex gap-4 mt-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="YES" id="sk-yes" />
+                          <Label htmlFor="sk-yes">YES</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="NO" id="sk-no" />
+                          <Label htmlFor="sk-no">NO</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    <div>
+                      <Label className="font-medium">Registered National Voter? *</Label>
+                      <RadioGroup
+                        value={formData.registeredNationalVoter}
+                        onValueChange={(value) => handleInputChange('registeredNationalVoter', value)}
+                        className="flex gap-4 mt-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="YES" id="national-yes" />
+                          <Label htmlFor="national-yes">YES</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="NO" id="national-no" />
+                          <Label htmlFor="national-no">NO</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    <div>
+                      <Label className="font-medium">Did you vote last SK Election? *</Label>
+                      <RadioGroup
+                        value={formData.votedLastSkElection}
+                        onValueChange={(value) => handleInputChange('votedLastSkElection', value)}
+                        className="flex gap-4 mt-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="YES" id="voted-yes" />
+                          <Label htmlFor="voted-yes">YES</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="NO" id="voted-no" />
+                          <Label htmlFor="voted-no">NO</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SK Assembly */}
+                <div>
+                  <Label className="font-medium">Have you attended SK Assembly? *</Label>
+                  <RadioGroup
+                    value={formData.attendedSkAssembly}
+                    onValueChange={(value) => {
+                      handleInputChange('attendedSkAssembly', value);
+                      // Reset conditional fields
+                      if (value === 'YES') {
+                        handleInputChange('notAttendedReason', '');
+                      } else {
+                        handleInputChange('assemblyAttendanceCount', '');
+                      }
+                    }}
+                    className="flex gap-4 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="YES" id="assembly-yes" />
+                      <Label htmlFor="assembly-yes">YES</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="NO" id="assembly-no" />
+                      <Label htmlFor="assembly-no">NO</Label>
+                    </div>
+                  </RadioGroup>
+
+                  {formData.attendedSkAssembly === 'YES' && (
+                    <div className="mt-4">
+                      <Label className="font-medium">How many times?</Label>
+                      <RadioGroup
+                        value={formData.assemblyAttendanceCount}
+                        onValueChange={(value) => handleInputChange('assemblyAttendanceCount', value)}
+                        className="space-y-2 mt-2"
+                      >
+                        {['1-2 times', '3-4 times', '5 and above'].map((count) => (
+                          <div key={count} className="flex items-center space-x-2">
+                            <RadioGroupItem value={count} id={count} />
+                            <Label htmlFor={count}>{count}</Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  )}
+
+                  {formData.attendedSkAssembly === 'NO' && (
+                    <div className="mt-4">
+                      <Label className="font-medium">Why not?</Label>
+                      <RadioGroup
+                        value={formData.notAttendedReason}
+                        onValueChange={(value) => handleInputChange('notAttendedReason', value)}
+                        className="space-y-2 mt-2"
+                      >
+                        {[
+                          'There was no KK Assembly',
+                          'Meeting',
+                          'Not interested to attend'
+                        ].map((reason) => (
+                          <div key={reason} className="flex items-center space-x-2">
+                            <RadioGroupItem value={reason} id={reason} />
+                            <Label htmlFor={reason}>{reason}</Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  )}
+                </div>
+
+                {/* LGBTQ+ */}
+                <div>
+                  <Label className="font-medium">Are you part of LGBTQ+ Community? *</Label>
+                  <RadioGroup
+                    value={formData.lgbtqCommunity}
+                    onValueChange={(value) => handleInputChange('lgbtqCommunity', value)}
+                    className="flex gap-4 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="YES" id="lgbtq-yes" />
+                      <Label htmlFor="lgbtq-yes">YES</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="NO" id="lgbtq-no" />
+                      <Label htmlFor="lgbtq-no">NO</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* Specific Needs */}
+                <div>
+                  <Label className="text-base font-medium">Youth with specific needs (Select all that apply)</Label>
+                  <div className="space-y-2 mt-2">
+                    {[
+                      'Person w/ Disability',
+                      'Children in conflict w/ law',
+                      'Indigenous People'
+                    ].map((need) => (
+                      <div key={need} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={need}
+                          checked={formData.youthSpecificNeeds.includes(need)}
+                          onCheckedChange={(checked) =>
+                            handleArrayChange('youthSpecificNeeds', need, checked as boolean)
+                          }
+                        />
+                        <Label htmlFor={need}>{need}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Solo Parent */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="soloParent"
+                    checked={formData.soloParent}
+                    onCheckedChange={(checked) =>
+                      setFormData(prev => ({ ...prev, soloParent: checked as boolean }))
+                    }
+                  />
+                  <Label htmlFor="soloParent" className="font-medium">Solo Parent</Label>
+                </div>
+              </CardContent>
+            </Card>
+          );
+
+        case 3: // Interests for under-30 users
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="h-5 w-5" />
+                  Interests & Activities
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Tell us about your hobbies and activities (Optional - helps us plan better programs)
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Sports */}
+                <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-200/50">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-blue-600" />
+                    Sports & Physical Activities
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Select sports you enjoy playing or would like to participate in
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      { value: 'Basketball', desc: 'Team sport, very popular' },
+                      { value: 'Volleyball', desc: 'Team sport, indoor/outdoor' },
+                      { value: 'Badminton', desc: 'Racket sport, singles/doubles' },
+                      { value: "Other's", desc: 'Specify other sports you enjoy' }
+                    ].map((sport) => (
+                      <div key={sport.value} className="flex items-start space-x-2 p-2 rounded bg-white/50">
+                        <Checkbox
+                          id={sport.value}
+                          checked={formData.sports.includes(sport.value)}
+                          onCheckedChange={(checked) =>
+                            handleArrayChange('sports', sport.value, checked as boolean)
+                          }
+                          className="mt-1"
+                        />
+                        <div>
+                          <Label htmlFor={sport.value} className="font-medium">{sport.value}</Label>
+                          <p className="text-xs text-muted-foreground">{sport.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {formData.sports.includes("Other's") && (
+                    <div className="mt-4">
+                      <Label htmlFor="sportsOtherSpecify">Please specify other sports:</Label>
+                      <Input
+                        id="sportsOtherSpecify"
+                        placeholder="e.g., Tennis, Swimming, etc."
+                        value={formData.sportsOtherSpecify}
+                        onChange={(e) => handleInputChange('sportsOtherSpecify', e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Hobbies */}
+                <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-200/50">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Heart className="h-4 w-4 text-purple-600" />
+                    Hobbies & Interests
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Select hobbies and interests you enjoy
+                  </p>
+                  <div className="space-y-3">
+                    {[
+                      { value: 'Dancing', desc: 'Traditional, modern, or any dance style' },
+                      { value: 'Arts & Crafts', desc: 'Drawing, painting, handicrafts, DIY projects' },
+                      { value: 'News Writing, Photography, Cartoonist', desc: 'Media, journalism, visual arts' },
+                      { value: 'Cooking, Baking', desc: 'Culinary arts, food preparation' }
+                    ].map((hobby) => (
+                      <div key={hobby.value} className="flex items-start space-x-2 p-2 rounded bg-white/50">
+                        <Checkbox
+                          id={hobby.value}
+                          checked={formData.hobbies.includes(hobby.value)}
+                          onCheckedChange={(checked) =>
+                            handleArrayChange('hobbies', hobby.value, checked as boolean)
+                          }
+                          className="mt-1"
+                        />
+                        <div>
+                          <Label htmlFor={hobby.value} className="font-medium">{hobby.value}</Label>
+                          <p className="text-xs text-muted-foreground">{hobby.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+
+        default:
+          return null;
+      }
     }
   };
 
@@ -820,7 +1644,7 @@ export default function YouthRegistration() {
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center space-x-4">
-            {STEPS.map((step, index) => {
+            {steps.map((step, index) => {
               const isCompleted = step.id < currentStep;
               const isActive = step.id === currentStep;
               const Icon = step.icon;
@@ -847,7 +1671,7 @@ export default function YouthRegistration() {
                       {step.title}
                     </p>
                   </div>
-                  {index < STEPS.length - 1 && (
+                  {index < steps.length - 1 && (
                     <div className={`w-12 h-0.5 mx-4 ${
                       isCompleted ? 'bg-primary' : 'bg-muted'
                     }`} />
@@ -861,15 +1685,15 @@ export default function YouthRegistration() {
         {/* Form Container */}
         <div className="bg-muted/30 p-4 rounded-lg mb-6">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Step {currentStep} of {STEPS.length}</span>
+            <span className="font-medium">Step {currentStep} of {steps.length}</span>
             <span className="text-muted-foreground">
-              {Math.round((currentStep / STEPS.length) * 100)}% Complete
+              {Math.round((currentStep / steps.length) * 100)}% Complete
             </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2 mt-2">
             <div 
               className="bg-primary h-2 rounded-full transition-all duration-300" 
-              style={{ width: `${(currentStep / STEPS.length) * 100}%` }}
+              style={{ width: `${(currentStep / steps.length) * 100}%` }}
             />
           </div>
         </div>
@@ -890,10 +1714,10 @@ export default function YouthRegistration() {
           </Button>
 
           <Button
-            onClick={currentStep === STEPS.length ? handleNext : handleNext}
+            onClick={currentStep === steps.length ? handleNext : handleNext}
             className="gap-2"
           >
-            {currentStep === STEPS.length ? 'Review & Submit' : 'Next'}
+            {currentStep === steps.length ? 'Review & Submit' : 'Next'}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
