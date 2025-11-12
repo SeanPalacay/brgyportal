@@ -35,31 +35,33 @@ export default function AboutBarangay() {
           <Card className="relative overflow-hidden border-0 shadow-2xl max-w-6xl mx-auto">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-background" />
             <div className="absolute inset-0 bg-grid-white/5 bg-[size:20px_20px]" />
-            <CardContent className="relative p-8 md:p-12">
-              <div className="text-center mb-8">
-                <Badge className="w-fit mb-6" variant="secondary">
+            <CardContent className="relative p-6 md:p-8 lg:p-12">
+              <div className="text-center space-y-6 md:space-y-8 mb-8">
+                <Badge className="w-fit mx-auto" variant="secondary">
                   <Sparkles className="mr-2 h-4 w-4" />
                   About Barangay Binitayan
                 </Badge>
-                
-                <div className="inline-flex items-center justify-center w-32 h-32 bg-card rounded-3xl mb-8 border shadow-2xl">
-                  <img src="/binitayanlogo.png" alt="Barangay Binitayan Logo" className="w-28 h-28 object-contain" />
+
+                <div className="flex items-center justify-center w-28 h-28 md:w-32 md:h-32 bg-card rounded-3xl border shadow-2xl mx-auto">
+                  <img src="/binitayanlogo.png" alt="Barangay Binitayan Logo" className="w-24 h-24 md:w-28 md:h-28 object-contain" />
                 </div>
-                
-                <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl mb-6">
-                  Barangay
-                  <span className="block text-primary">
-                    Binitayan
-                  </span>
-                </h1>
-                
-                <div className="max-w-4xl mx-auto space-y-4">
-                  <p className="text-muted-foreground text-lg md:text-xl leading-relaxed">
-                    A vibrant rural barangay located in the municipality of Daraga, Province of Albay, Bicol Region.
-                  </p>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Known for its scenic views of Mayon Volcano, rich historical heritage, and strong community spirit rooted in agricultural traditions.
-                  </p>
+
+                <div className="space-y-4">
+                  <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+                    Barangay
+                    <span className="block text-primary">
+                      Binitayan
+                    </span>
+                  </h1>
+
+                  <div className="max-w-4xl mx-auto space-y-4">
+                    <p className="text-muted-foreground text-lg md:text-xl leading-relaxed">
+                      A vibrant rural barangay located in the municipality of Daraga, Province of Albay, Bicol Region.
+                    </p>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Known for its scenic views of Mayon Volcano, rich historical heritage, and strong community spirit rooted in agricultural traditions.
+                    </p>
+                  </div>
                 </div>
               </div>
 

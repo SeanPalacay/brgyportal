@@ -588,7 +588,7 @@ export default function UserManagement() {
                 <SelectTrigger className="w-full md:w-[200px]">
                   <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px]">
                   <SelectItem value="all">All Roles</SelectItem>
                   {Object.entries(ROLE_HIERARCHY).map(([category, { roles, icon: IconComponent }]) => (
                     <div key={category}>
@@ -1116,7 +1116,7 @@ export default function UserManagement() {
 
         {/* Edit User Dialog */}
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit User</DialogTitle>
               <DialogDescription>
@@ -1169,11 +1169,11 @@ export default function UserManagement() {
               </div>
               <div className="space-y-2">
                 <Label>Roles</Label>
-                <div className="space-y-2">
+                <div className="max-h-[300px] overflow-y-auto border rounded-md p-3 space-y-2">
                   {Object.entries(ROLE_HIERARCHY).map(([category, { roles }]) => (
                     <div key={category} className="space-y-1">
                       <Label className="text-sm font-medium text-muted-foreground">{category}</Label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {roles.map(role => (
                           <div key={role} className="flex items-center space-x-2">
                             <Switch
@@ -1292,7 +1292,7 @@ export default function UserManagement() {
 
         {/* Add User Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New User</DialogTitle>
               <DialogDescription>
@@ -1345,11 +1345,11 @@ export default function UserManagement() {
               </div>
               <div className="space-y-2">
                 <Label>Roles</Label>
-                <div className="space-y-2">
+                <div className="max-h-[300px] overflow-y-auto border rounded-md p-3 space-y-2">
                   {Object.entries(ROLE_HIERARCHY).map(([category, { roles }]) => (
                     <div key={category} className="space-y-1">
                       <Label className="text-sm font-medium text-muted-foreground">{category}</Label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {roles.map(role => (
                           <div key={role} className="flex items-center space-x-2">
                             <Switch

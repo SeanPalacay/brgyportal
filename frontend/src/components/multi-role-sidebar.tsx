@@ -114,26 +114,28 @@ const getMultiRoleNavigation = (userRoles: string[], userPermissions: string[] =
   }
 
   // Health Services
-  if (hasPermission('HEALTH_DASHBOARD')) {
-    const healthItems = [{ title: "Dashboard", url: "/health" }];
-    
-    if (hasPermission('PATIENT_MANAGEMENT')) {
-      healthItems.push({ title: "Patient Management", url: "/health/patients" });
-    }
-    
-    if (hasPermission('APPOINTMENTS')) {
-      healthItems.push({ title: "Appointments", url: "/health/appointments" });
-    }
-    
-    if (hasPermission('HEALTH_RECORDS')) {
-      healthItems.push({ title: "Health Records", url: "/health/records" });
-    }
-    
+  const healthItems = [];
 
-    
+  if (hasPermission('HEALTH_DASHBOARD')) {
+    healthItems.push({ title: "Dashboard", url: "/health" });
+  }
+
+  if (hasPermission('PATIENT_MANAGEMENT')) {
+    healthItems.push({ title: "Patient Management", url: "/health/patients" });
+  }
+
+  if (hasPermission('APPOINTMENTS')) {
+    healthItems.push({ title: "Appointments", url: "/health/appointments" });
+  }
+
+  if (hasPermission('HEALTH_RECORDS')) {
+    healthItems.push({ title: "Health Records", url: "/health/records" });
+  }
+
+  if (healthItems.length > 0) {
     navigation.main.push({
       title: "Health Services",
-      url: "/health",
+      url: healthItems[0].url,
       icon: Heart,
       items: healthItems,
     });
@@ -152,32 +154,36 @@ const getMultiRoleNavigation = (userRoles: string[], userPermissions: string[] =
   }
 
   // Daycare Services
+  const daycareItems = [];
+
   if (hasPermission('DAYCARE_DASHBOARD')) {
-    const daycareItems = [{ title: "Dashboard", url: "/daycare" }];
-    
-    if (hasPermission('STUDENT_REGISTRATIONS')) {
-      daycareItems.push({ title: "Registrations", url: "/daycare/registrations" });
-    }
-    
-    if (hasPermission('ATTENDANCE_TRACKING')) {
-      daycareItems.push({ title: "Attendance", url: "/daycare/attendance" });
-    }
-    
-    if (hasPermission('PROGRESS_REPORTS')) {
-      daycareItems.push({ title: "Progress Reports", url: "/daycare/progress-reports" });
-    }
-    
-    if (hasPermission('LEARNING_MATERIALS')) {
-      daycareItems.push({ title: "Learning Materials", url: "/daycare/materials" });
-    }
-    
-    if (hasPermission('DAYCARE_CERTIFICATES')) {
-      daycareItems.push({ title: "Certificates", url: "/daycare/certificates" });
-    }
-    
+    daycareItems.push({ title: "Dashboard", url: "/daycare" });
+  }
+
+  if (hasPermission('STUDENT_REGISTRATIONS')) {
+    daycareItems.push({ title: "Registrations", url: "/daycare/registrations" });
+  }
+
+  if (hasPermission('ATTENDANCE_TRACKING')) {
+    daycareItems.push({ title: "Attendance", url: "/daycare/attendance" });
+  }
+
+  if (hasPermission('PROGRESS_REPORTS')) {
+    daycareItems.push({ title: "Progress Reports", url: "/daycare/progress-reports" });
+  }
+
+  if (hasPermission('LEARNING_MATERIALS')) {
+    daycareItems.push({ title: "Learning Materials", url: "/daycare/materials" });
+  }
+
+  if (hasPermission('DAYCARE_CERTIFICATES')) {
+    daycareItems.push({ title: "Certificates", url: "/daycare/certificates" });
+  }
+
+  if (daycareItems.length > 0) {
     navigation.main.push({
       title: "Daycare Management",
-      url: "/daycare",
+      url: daycareItems[0].url,
       icon: Baby,
       items: daycareItems,
     });
@@ -207,72 +213,76 @@ const getMultiRoleNavigation = (userRoles: string[], userPermissions: string[] =
   }
 
   // SK Services
-  if (hasPermission('SK_DASHBOARD') || hasPermission('EVENT_REGISTRATION') || hasPermission('MY_EVENT_REGISTRATIONS')) {
-    const skItems = [];
-    
-    if (hasPermission('SK_DASHBOARD')) {
-      skItems.push({ title: "Dashboard", url: "/sk" });
-    }
-    
-    if (hasPermission('EVENT_MANAGEMENT')) {
-      skItems.push({ title: "Event Management", url: "/sk/events" });
-    }
-    
-    if (hasPermission('EVENT_REGISTRATION')) {
-      skItems.push({ title: "Event Registration", url: "/sk/event-registration" });
-    }
-    
-    if (hasPermission('MY_EVENT_REGISTRATIONS')) {
-      skItems.push({ title: "My Registrations", url: "/events/my-registrations" });
-    }
-    
-    if (hasPermission('ATTENDANCE_ANALYTICS')) {
-      skItems.push({ title: "Attendance Tracking", url: "/sk/attendance" });
-    }
-    
-    if (hasPermission('SK_ANALYTICS')) {
-      skItems.push({ title: "Analytics", url: "/sk/analytics" });
-    }
-    
-    if (hasPermission('SK_CERTIFICATES')) {
-      skItems.push({ title: "Certificates", url: "/sk/certificates" });
-    }
-    
+  const skItems = [];
+
+  if (hasPermission('SK_DASHBOARD')) {
+    skItems.push({ title: "Dashboard", url: "/sk" });
+  }
+
+  if (hasPermission('EVENT_MANAGEMENT')) {
+    skItems.push({ title: "Event Management", url: "/sk/events" });
+  }
+
+  if (hasPermission('EVENT_REGISTRATION')) {
+    skItems.push({ title: "Event Registration", url: "/sk/event-registration" });
+  }
+
+  if (hasPermission('MY_EVENT_REGISTRATIONS')) {
+    skItems.push({ title: "My Registrations", url: "/events/my-registrations" });
+  }
+
+  if (hasPermission('ATTENDANCE_ANALYTICS')) {
+    skItems.push({ title: "Attendance Tracking", url: "/sk/attendance" });
+  }
+
+  if (hasPermission('SK_ANALYTICS')) {
+    skItems.push({ title: "Analytics", url: "/sk/analytics" });
+  }
+
+  if (hasPermission('SK_CERTIFICATES')) {
+    skItems.push({ title: "Certificates", url: "/sk/certificates" });
+  }
+
+  if (skItems.length > 0) {
     navigation.main.push({
       title: "SK Engagement",
-      url: hasPermission('SK_DASHBOARD') ? "/sk" : (hasPermission('EVENT_REGISTRATION') ? "/sk/event-registration" : "/events/my-registrations"),
+      url: skItems[0].url,
       icon: PartyPopper,
       items: skItems,
     });
   }
 
   // Reports & Analytics
+  const reportItems = [];
+
   if (hasPermission('REPORTS_DASHBOARD')) {
-    const reportItems = [{ title: "Dashboard", url: "/reports" }];
-    
-    if (hasPermission('HEALTH_REPORTS')) {
-      reportItems.push({ title: "Health Reports", url: "/reports/health" });
-    }
-    
-    if (hasPermission('DAYCARE_REPORTS')) {
-      reportItems.push({ title: "Daycare Reports", url: "/reports/daycare" });
-    }
-    
-    if (hasPermission('SK_REPORTS')) {
-      reportItems.push({ title: "SK Reports", url: "/reports/sk" });
-    }
-    
-    if (hasPermission('CROSS_MODULE_ANALYTICS')) {
-      reportItems.push({ title: "Cross-Module Analytics", url: "/reports/analytics" });
-    }
-    
-    if (hasPermission('HEALTH_STATS')) {
-      reportItems.push({ title: "Health Statistics", url: "/reports/health/stats" });
-    }
-    
+    reportItems.push({ title: "Dashboard", url: "/reports" });
+  }
+
+  if (hasPermission('HEALTH_REPORTS')) {
+    reportItems.push({ title: "Health Reports", url: "/reports/health" });
+  }
+
+  if (hasPermission('DAYCARE_REPORTS')) {
+    reportItems.push({ title: "Daycare Reports", url: "/reports/daycare" });
+  }
+
+  if (hasPermission('SK_REPORTS')) {
+    reportItems.push({ title: "SK Reports", url: "/reports/sk" });
+  }
+
+  if (hasPermission('CROSS_MODULE_ANALYTICS')) {
+    reportItems.push({ title: "Cross-Module Analytics", url: "/reports/analytics" });
+  }
+
+  if (hasPermission('HEALTH_STATS')) {
+    reportItems.push({ title: "Health Statistics", url: "/reports/health/stats" });
+  }
+
+  if (reportItems.length > 0) {
     navigation.main.push({
       title: "Reports & Analytics",
-      url: "/reports",
+      url: reportItems[0].url,
       icon: BarChart3,
       items: reportItems,
     });
