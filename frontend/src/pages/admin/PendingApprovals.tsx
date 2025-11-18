@@ -49,7 +49,8 @@ interface PendingUser {
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
+  role?: string;
+  roles?: string[];
   contactNumber?: string;
   address?: string;
   createdAt: string;
@@ -85,8 +86,15 @@ export default function PendingApprovals() {
       setLoading(true);
       const response = await api.get('/admin/users?status=PENDING');
       const allUsers = response.data.users || [];
-      // Filter to only show PENDING status users
-      const pendingUsers = allUsers.filter((user: PendingUser) => user.status === 'PENDING');
+      // Filter to only show PENDING status users and normalize role display
+      const pendingUsers = allUsers
+        .filter((user: PendingUser) => user.status === 'PENDING')
+        .map((user: PendingUser) => ({
+          ...user,
+          role: Array.isArray(user.roles) && user.roles.length > 0
+            ? user.roles[0]
+            : user.role || 'VISITOR'
+        }));
       setUsers(pendingUsers);
       setFilteredUsers(pendingUsers);
     } catch (error) {
@@ -103,12 +111,16 @@ export default function PendingApprovals() {
       return;
     }
 
-    const filtered = users.filter((u) =>
-      u.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (u.role || 'VISITOR').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filtered = users.filter((u) => {
+      const normalizedRole = getDisplayRole(u).toLowerCase();
+      const term = searchTerm.toLowerCase();
+      return (
+        u.firstName.toLowerCase().includes(term) ||
+        u.lastName.toLowerCase().includes(term) ||
+        u.email.toLowerCase().includes(term) ||
+        normalizedRole.includes(term)
+      );
+    });
 
     setFilteredUsers(filtered);
   };
@@ -166,6 +178,15 @@ export default function PendingApprovals() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const getDisplayRole = (user?: Pick<PendingUser, 'role' | 'roles'> | null) => {
+    if (!user) return 'VISITOR';
+    if (user.role) return user.role;
+    if (Array.isArray(user.roles) && user.roles.length > 0) {
+      return user.roles[0];
+    }
+    return 'VISITOR';
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -354,8 +375,8 @@ export default function PendingApprovals() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={getRoleBadgeColor(user.role || 'VISITOR')}>
-                            {(user.role || 'VISITOR').replace('_', ' ')}
+                          <Badge variant="outline" className={getRoleBadgeColor(getDisplayRole(user))}>
+                            {getDisplayRole(user).replace('_', ' ')}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -437,8 +458,8 @@ export default function PendingApprovals() {
                   <div className="font-semibold text-lg">
                     {selectedUser.firstName} {selectedUser.lastName}
                   </div>
-                  <Badge variant="outline" className={getRoleBadgeColor(selectedUser.role || 'VISITOR')}>
-                    {(selectedUser.role || 'VISITOR').replace('_', ' ')}
+                  <Badge variant="outline" className={getRoleBadgeColor(getDisplayRole(selectedUser))}>
+                    {getDisplayRole(selectedUser).replace('_', ' ')}
                   </Badge>
                 </div>
               </div>
