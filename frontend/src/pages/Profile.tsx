@@ -115,7 +115,8 @@ export default function Profile() {
       BHW: 'secondary',
       DAYCARE_STAFF: 'outline',
       SK_OFFICER: 'secondary',
-      PARENT_RESIDENT: 'outline'
+      PARENT_RESIDENT: 'outline',
+      KK_MEMBER: 'secondary'
     };
 
     return (

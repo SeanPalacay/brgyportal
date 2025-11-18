@@ -138,7 +138,7 @@ const ROLE_HIERARCHY = {
     icon: Users
   },
   'Community': {
-    roles: ['PARENT_RESIDENT', 'VISITOR'],
+    roles: ['PARENT_RESIDENT', 'KK_MEMBER', 'VISITOR'],
     variant: 'outline' as const,
     icon: Users
   }
@@ -424,6 +424,7 @@ export default function UserManagement() {
       DAYCARE_STAFF: 'bg-orange-100 text-orange-800 border-orange-200',
       SK_OFFICER: 'bg-cyan-100 text-cyan-800 border-cyan-200',
       PARENT_RESIDENT: 'bg-green-100 text-green-800 border-green-200',
+      KK_MEMBER: 'bg-emerald-100 text-emerald-800 border-emerald-200',
       PATIENT: 'bg-teal-100 text-teal-800 border-teal-200'
     };
 

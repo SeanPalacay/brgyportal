@@ -537,6 +537,9 @@ export const getCrossModuleAnalytics = async (req: AuthRequest, res: Response) =
         case 'PARENT_RESIDENT':
           engagementScore = (totalPatients + totalStudents) > 0 ? Math.min(90, 50 + ((totalPatients + totalStudents) / role._count.id) * 2) : 50;
           break;
+        case 'KK_MEMBER':
+          engagementScore = totalEventRegistrations > 0 ? Math.min(85, 45 + (totalEventRegistrations / Math.max(role._count.id, 1)) * 3) : 45;
+          break;
         case 'PATIENT':
           engagementScore = totalAppointments > 0 ? Math.min(85, 50 + (totalAppointments / Math.max(role._count.id, 1)) * 3) : 50;
           break;

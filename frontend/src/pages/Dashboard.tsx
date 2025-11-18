@@ -75,6 +75,7 @@ export default function Dashboard() {
       'SK_OFFICER': { label: 'SK Officer', variant: 'outline' as const, icon: Trophy },
       'SK_CHAIRMAN': { label: 'SK Chairman', variant: 'outline' as const, icon: Trophy },
       'PARENT_RESIDENT': { label: 'Parent/Resident', variant: 'secondary' as const, icon: Users },
+      'KK_MEMBER': { label: 'KK Member', variant: 'secondary' as const, icon: Calendar },
       'PATIENT': { label: 'Patient', variant: 'secondary' as const, icon: Heart },
       'VISITOR': { label: 'Visitor', variant: 'outline' as const, icon: Users },
     };
@@ -137,6 +138,13 @@ export default function Dashboard() {
       icon: Baby,
       path: '/daycare/registration',
       available: userRoles.some(role => ['PARENT_RESIDENT'].includes(role))
+    },
+    {
+      title: 'SK Events',
+      description: 'Register for youth programs and track slots',
+      icon: Calendar,
+      path: '/sk/event-registration',
+      available: userRoles.some(role => ['PARENT_RESIDENT', 'KK_MEMBER'].includes(role))
     },
     {
       title: 'Profile Settings',

@@ -79,14 +79,22 @@ export const register = async (req: Request, res: Response) => {
       }
     }
 
-    // Get PARENT_RESIDENT role
-    const parentResidentRole = await prisma.role.findUnique({
-      where: { name: 'PARENT_RESIDENT' }
-    });
+    // Get base roles for residents
+    const [parentResidentRole, kkMemberRole] = await Promise.all([
+      prisma.role.findUnique({ where: { name: 'PARENT_RESIDENT' } }),
+      prisma.role.findUnique({ where: { name: 'KK_MEMBER' } })
+    ]);
 
     if (!parentResidentRole) {
       return res.status(500).json({ error: 'PARENT_RESIDENT role not found' });
     }
+
+    const numericAge = profileData && typeof profileData.age !== 'undefined'
+      ? Number(profileData.age)
+      : undefined;
+    const hasValidAge = typeof numericAge === 'number' && !Number.isNaN(numericAge);
+    const isKkMemberEligible = hasValidAge && numericAge! < 30;
+    const roleToAssign = isKkMemberEligible && kkMemberRole ? kkMemberRole : parentResidentRole;
 
     // Create user with profile data and assign role
     const user = await prisma.user.create({
@@ -104,7 +112,7 @@ export const register = async (req: Request, res: Response) => {
         consentDate: consentAgreed === 'true' ? new Date() : null,
         status: 'PENDING', // Account needs approval
         roles: {
-          connect: { id: parentResidentRole.id }
+          connect: { id: roleToAssign.id }
         },
         profile: profileData ? {
           create: {
@@ -114,7 +122,7 @@ export const register = async (req: Request, res: Response) => {
             province: profileData.province,
             region: profileData.region,
             birthday: new Date(profileData.birthday),
-            age: profileData.age,
+            age: hasValidAge ? numericAge! : profileData.age,
             sex: profileData.sex,
             civilStatus: profileData.civilStatus,
             religion: profileData.religion,

@@ -5,6 +5,37 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting database seeding...');
+  console.log('🧹 Clearing existing data...');
+
+  await prisma.systemBackup.deleteMany();
+  await prisma.auditLog.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.notificationSettings.deleteMany();
+  await prisma.broadcastMessage.deleteMany();
+  await prisma.certificate.deleteMany();
+  await prisma.eventAttendance.deleteMany();
+  await prisma.eventRegistration.deleteMany();
+  await prisma.event.deleteMany();
+  await prisma.progressReport.deleteMany();
+  await prisma.learningMaterial.deleteMany();
+  await prisma.attendanceRecord.deleteMany();
+  await prisma.daycareStudent.deleteMany();
+  await prisma.daycareRegistration.deleteMany();
+  await prisma.immunizationRecord.deleteMany();
+  await prisma.appointment.deleteMany();
+  await prisma.patient.deleteMany();
+  await prisma.youthProfile.deleteMany();
+  await prisma.announcement.deleteMany();
+  await prisma.feature.deleteMany();
+  await prisma.benefit.deleteMany();
+  await prisma.testimonial.deleteMany();
+  await prisma.serviceFeature.deleteMany();
+  await prisma.immunizationSchedule.deleteMany();
+  await prisma.systemSettings.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.role.deleteMany();
+
+  console.log('✅ Cleared previous records');
 
   // Create default roles with navigation permissions
   const roles = await Promise.all([
@@ -226,6 +257,25 @@ async function main() {
       }
     }),
 
+    // KK_MEMBER - Youth members below 30 with SK focus
+    prisma.role.upsert({
+      where: { name: 'KK_MEMBER' },
+      update: {},
+      create: {
+        name: 'KK_MEMBER',
+        displayName: 'KK Member',
+        description: 'Sangguniang Kabataan member with access to events and announcements',
+        permissions: [
+          // SK Engagement
+          'EVENT_REGISTRATION', 'MY_EVENT_REGISTRATIONS',
+          // Public Access
+          'PUBLIC_ANNOUNCEMENTS', 'PUBLIC_EVENTS'
+        ],
+        isSystem: true,
+        isActive: true
+      }
+    }),
+
     // VISITOR - Limited public access
     prisma.role.upsert({
       where: { name: 'VISITOR' },
@@ -262,118 +312,81 @@ async function main() {
 
   console.log(`✅ Created ${roles.length} roles`);
 
+  const roleMap = roles.reduce((acc, role) => {
+    acc[role.name] = role;
+    return acc;
+  }, {} as Record<string, (typeof roles)[number]>);
+
   // Create sample users with role assignments
   const hashedPassword = await bcrypt.hash('password123', 10);
-  
-  const users = await Promise.all([
-    // System Admin
-    prisma.user.upsert({
-      where: { email: 'admin@theycare.com' },
-      update: {},
-      create: {
-        email: 'admin@theycare.com',
-        password: hashedPassword,
-        firstName: 'System',
-        lastName: 'Admin',
-        roles: {
-          connect: [{ id: roles[0].id }] // SYSTEM_ADMIN
-        },
-        status: 'ACTIVE',
-        contactNumber: '09123456789',
-        address: 'Barangay Hall'
-      }
-    }),
 
-    // Barangay Captain
-    prisma.user.upsert({
-      where: { email: 'captain@theycare.com' },
-      update: {},
-      create: {
-        email: 'captain@theycare.com',
-        password: hashedPassword,
-        firstName: 'Juan',
-        lastName: 'Dela Cruz',
-        roles: {
-          connect: [{ id: roles[1].id }] // BARANGAY_CAPTAIN
-        },
-        status: 'ACTIVE',
-        contactNumber: '09123456788',
-        address: 'Barangay Hall'
-      }
-    }),
+  const sampleUsers = [
+    { email: 'admin@theycare.com', firstName: 'System', lastName: 'Admin', roles: ['SYSTEM_ADMIN'], contactNumber: '09123456789', address: 'Barangay Hall' },
+    { email: 'captain@theycare.com', firstName: 'Juan', lastName: 'Dela Cruz', roles: ['BARANGAY_CAPTAIN'], contactNumber: '09123456788', address: 'Barangay Hall' },
+    { email: 'official@theycare.com', firstName: 'Luz', lastName: 'Santos', roles: ['BARANGAY_OFFICIAL'], contactNumber: '09123456787', address: 'Barangay Hall' },
+    { email: 'bhw@theycare.com', firstName: 'Maria', lastName: 'Santos', roles: ['BHW'], contactNumber: '09123456790', address: 'Purok 1' },
+    { email: 'coordinator@theycare.com', firstName: 'Jose', lastName: 'Lopez', roles: ['BHW_COORDINATOR'], contactNumber: '09123456770', address: 'Purok 1' },
+    { email: 'daycare.staff@theycare.com', firstName: 'Clara', lastName: 'Reyes', roles: ['DAYCARE_STAFF'], contactNumber: '09123456771', address: 'Purok 3' },
+    { email: 'teacher@theycare.com', firstName: 'Ana', lastName: 'Garcia', roles: ['DAYCARE_TEACHER'], contactNumber: '09123456787', address: 'Purok 3' },
+    { email: 'sk.officer@theycare.com', firstName: 'Marco', lastName: 'Villanueva', roles: ['SK_OFFICER'], contactNumber: '09123456772', address: 'Purok 4' },
+    { email: 'sk@theycare.com', firstName: 'Pedro', lastName: 'Reyes', roles: ['SK_CHAIRMAN'], contactNumber: '09123456786', address: 'Purok 4' },
+    { email: 'parent@theycare.com', firstName: 'Rosa', lastName: 'Martinez', roles: ['PARENT_RESIDENT'], contactNumber: '09123456791', address: 'Purok 2' },
+    { email: 'kkmember@theycare.com', firstName: 'Lia', lastName: 'Gomez', roles: ['KK_MEMBER'], contactNumber: '09123456773', address: 'Purok 5' },
+    { email: 'visitor@theycare.com', firstName: 'Guest', lastName: 'User', roles: ['VISITOR'], contactNumber: '09123456774', address: 'Purok 6' },
+    { email: 'custom@theycare.com', firstName: 'Custom', lastName: 'Role', roles: ['CUSTOM_ROLE'], contactNumber: '09123456775', address: 'Purok 7' }
+  ];
 
-    // BHW
-    prisma.user.upsert({
-      where: { email: 'bhw@theycare.com' },
-      update: {},
-      create: {
-        email: 'bhw@theycare.com',
-        password: hashedPassword,
-        firstName: 'Maria',
-        lastName: 'Santos',
-        roles: {
-          connect: [{ id: roles[3].id }] // BHW
-        },
-        status: 'ACTIVE',
-        contactNumber: '09123456790',
-        address: 'Purok 1'
-      }
-    }),
+  const users = await Promise.all(sampleUsers.map(userInfo => {
+    const connectedRoles = userInfo.roles
+      .map(roleName => roleMap[roleName])
+      .filter((role): role is (typeof roles)[number] => Boolean(role))
+      .map(role => ({ id: role.id }));
 
-    // Daycare Teacher
-    prisma.user.upsert({
-      where: { email: 'teacher@theycare.com' },
+    return prisma.user.upsert({
+      where: { email: userInfo.email },
       update: {},
       create: {
-        email: 'teacher@theycare.com',
+        email: userInfo.email,
         password: hashedPassword,
-        firstName: 'Ana',
-        lastName: 'Garcia',
-        roles: {
-          connect: [{ id: roles[6].id }] // DAYCARE_TEACHER
-        },
+        firstName: userInfo.firstName,
+        lastName: userInfo.lastName,
+        contactNumber: userInfo.contactNumber,
+        address: userInfo.address,
         status: 'ACTIVE',
-        contactNumber: '09123456787',
-        address: 'Purok 3'
+        roles: {
+          connect: connectedRoles
+        }
+      },
+      include: {
+        roles: {
+          select: {
+            name: true,
+            displayName: true
+          }
+        }
       }
-    }),
+    });
+  }));
 
-    // SK Chairman
-    prisma.user.upsert({
-      where: { email: 'sk@theycare.com' },
-      update: {},
-      create: {
-        email: 'sk@theycare.com',
-        password: hashedPassword,
-        firstName: 'Pedro',
-        lastName: 'Reyes',
-        roles: {
-          connect: [{ id: roles[8].id }] // SK_CHAIRMAN
-        },
-        status: 'ACTIVE',
-        contactNumber: '09123456786',
-        address: 'Purok 4'
-      }
-    }),
+  const userByEmail = users.reduce((acc, user) => {
+    acc[user.email] = user;
+    return acc;
+  }, {} as Record<string, (typeof users)[number]>);
 
-    // Parent/Resident
-    prisma.user.upsert({
-      where: { email: 'parent@theycare.com' },
-      update: {},
-      create: {
-        email: 'parent@theycare.com',
-        password: hashedPassword,
-        firstName: 'Rosa',
-        lastName: 'Martinez',
-        roles: {
-          connect: [{ id: roles[9].id }] // PARENT_RESIDENT
-        },
-        status: 'ACTIVE',
-        contactNumber: '09123456791',
-        address: 'Purok 2'
-      }
-    })
-  ]);
+  const getUser = (email: string) => {
+    const user = userByEmail[email];
+    if (!user) {
+      throw new Error(`Seed user not found for email: ${email}`);
+    }
+    return user;
+  };
+
+  const adminUser = getUser('admin@theycare.com');
+  const captainUser = getUser('captain@theycare.com');
+  const bhwUser = getUser('bhw@theycare.com');
+  const daycareTeacher = getUser('teacher@theycare.com');
+  const parentUser = getUser('parent@theycare.com');
+  const skChairUser = getUser('sk@theycare.com');
 
   console.log(`✅ Created ${users.length} users`);
 
@@ -381,7 +394,7 @@ async function main() {
   const patients = await Promise.all([
     prisma.patient.create({
       data: {
-        userId: users[5].id, // Parent user
+        userId: parentUser.id, // Parent user
         firstName: 'Ana',
         lastName: 'Martinez',
         dateOfBirth: new Date('2020-01-15'),
@@ -391,7 +404,7 @@ async function main() {
         contactNumber: '09123456791',
         emergencyContact: '09123456792',
         guardianName: 'Rosa Martinez',
-        guardianUserId: users[5].id
+        guardianUserId: parentUser.id
       }
     }),
     prisma.patient.create({
@@ -416,7 +429,7 @@ async function main() {
     prisma.appointment.create({
       data: {
         patientId: patients[0].id,
-        healthWorkerId: users[2].id, // BHW
+        healthWorkerId: bhwUser.id, // BHW
         appointmentDate: new Date('2024-01-15T09:00:00Z'),
         appointmentType: 'GENERAL_CHECKUP',
         status: 'COMPLETED',
@@ -426,7 +439,7 @@ async function main() {
     prisma.appointment.create({
       data: {
         patientId: patients[1].id,
-        healthWorkerId: users[2].id, // BHW
+        healthWorkerId: bhwUser.id, // BHW
         appointmentDate: new Date('2024-01-20T10:00:00Z'),
         appointmentType: 'IMMUNIZATION',
         status: 'SCHEDULED'
@@ -445,7 +458,7 @@ async function main() {
       dateGiven: new Date('2020-02-15'),
       ageAtVaccination: '1 month',
       administeredBy: 'Dr. Santos',
-      recordedBy: users[2].id, // BHW
+      recordedBy: bhwUser.id, // BHW
       doseNumber: 1,
       isCompleted: true
     }
@@ -519,7 +532,7 @@ async function main() {
   // Create sample daycare registration
   const daycareRegistration = await prisma.daycareRegistration.create({
     data: {
-      parentId: users[5].id, // Parent user
+      parentId: parentUser.id, // Parent user
       childFirstName: 'Ana',
       childLastName: 'Martinez',
       childDateOfBirth: new Date('2021-03-10'),
@@ -556,7 +569,7 @@ async function main() {
         status: 'PRESENT',
         timeIn: new Date('2024-01-15T08:00:00Z'),
         timeOut: new Date('2024-01-15T16:00:00Z'),
-        recordedBy: users[3].id // Daycare Teacher
+        recordedBy: daycareTeacher.id // Daycare Teacher
       }
     }),
     prisma.attendanceRecord.create({
@@ -567,7 +580,7 @@ async function main() {
         timeIn: new Date('2024-01-16T08:30:00Z'),
         timeOut: new Date('2024-01-16T16:00:00Z'),
         remarks: 'Arrived 30 minutes late',
-        recordedBy: users[3].id // Daycare Teacher
+        recordedBy: daycareTeacher.id // Daycare Teacher
       }
     })
   ]);
@@ -583,7 +596,7 @@ async function main() {
         fileUrl: '/materials/abc-cards.pdf',
         fileType: 'PDF',
         category: 'Alphabet',
-        uploadedBy: users[3].id, // Daycare Teacher
+        uploadedBy: daycareTeacher.id, // Daycare Teacher
         isPublic: true
       }
     }),
@@ -594,7 +607,7 @@ async function main() {
         fileUrl: '/materials/numbers-worksheet.pdf',
         fileType: 'PDF',
         category: 'Mathematics',
-        uploadedBy: users[3].id, // Daycare Teacher
+        uploadedBy: daycareTeacher.id, // Daycare Teacher
         isPublic: true
       }
     })
@@ -612,7 +625,7 @@ async function main() {
       physicalDevelopment: 'Good motor skills development, active participation in physical activities',
       emotionalDevelopment: 'Shows confidence and independence, expresses emotions appropriately',
       recommendations: 'Continue encouraging reading activities at home',
-      generatedBy: users[3].id // Daycare Teacher
+      generatedBy: daycareTeacher.id // Daycare Teacher
     }
   });
 
@@ -630,7 +643,7 @@ async function main() {
       category: 'Training',
       maxParticipants: 50,
       status: 'PUBLISHED',
-      createdBy: users[4].id // SK Chairman
+      createdBy: skChairUser.id // SK Chairman
     }
   });
 
@@ -641,7 +654,7 @@ async function main() {
     prisma.eventRegistration.create({
       data: {
         eventId: event.id,
-        userId: users[5].id, // Parent user
+        userId: parentUser.id, // Parent user
         status: 'APPROVED',
         confirmedAt: new Date()
       }
@@ -649,7 +662,7 @@ async function main() {
     prisma.eventRegistration.create({
       data: {
         eventId: event.id,
-        userId: users[2].id, // BHW user
+        userId: bhwUser.id, // BHW user
         status: 'PENDING'
       }
     })
@@ -661,8 +674,8 @@ async function main() {
   await prisma.eventAttendance.create({
     data: {
       eventId: event.id,
-      userId: users[5].id, // Parent user
-      recordedBy: users[4].id, // SK Chairman
+      userId: parentUser.id, // Parent user
+      recordedBy: skChairUser.id, // SK Chairman
       remarks: 'Active participation throughout the event'
     }
   });
@@ -677,7 +690,7 @@ async function main() {
       category: 'Health',
       priority: 'HIGH',
       isPublic: true,
-      publishedBy: users[1].id // Barangay Captain
+      publishedBy: captainUser.id // Barangay Captain
     }
   });
 
@@ -690,7 +703,7 @@ async function main() {
         certificateType: 'Health Certificate',
         recipientName: 'Ana Martinez',
         issuedFor: 'Medical Clearance',
-        issuedBy: users[2].id, // BHW
+        issuedBy: bhwUser.id, // BHW
         patientId: patients[0].id,
         certificateData: {
           purpose: 'School enrollment',
@@ -703,7 +716,7 @@ async function main() {
         certificateType: 'Daycare Completion',
         recipientName: 'Ana Martinez',
         issuedFor: 'Successful completion of daycare program',
-        issuedBy: users[3].id, // Daycare Teacher
+        issuedBy: daycareTeacher.id, // Daycare Teacher
         studentId: daycareStudent.id,
         certificateData: {
           program: 'Early Childhood Development',
@@ -716,7 +729,7 @@ async function main() {
         certificateType: 'Event Participation',
         recipientName: 'Rosa Martinez',
         issuedFor: 'Youth Leadership Training',
-        issuedBy: users[4].id, // SK Chairman
+        issuedBy: skChairUser.id, // SK Chairman
         eventId: event.id,
         certificateData: {
           eventDate: '2024-02-15',
@@ -732,7 +745,7 @@ async function main() {
   await Promise.all([
     prisma.notification.create({
       data: {
-        userId: users[5].id, // Parent user
+        userId: parentUser.id, // Parent user
         type: 'IN_APP',
         title: 'Appointment Reminder',
         message: 'Your child has an appointment scheduled for tomorrow at 9:00 AM',
@@ -744,7 +757,7 @@ async function main() {
     }),
     prisma.notification.create({
       data: {
-        userId: users[2].id, // BHW user
+        userId: bhwUser.id, // BHW user
         type: 'IN_APP',
         title: 'New Patient Registration',
         message: 'A new patient has been registered and requires initial assessment',
@@ -759,10 +772,10 @@ async function main() {
   // Create notification settings
   await Promise.all([
     prisma.notificationSettings.upsert({
-      where: { userId: users[5].id },
+      where: { userId: parentUser.id },
       update: {},
       create: {
-        userId: users[5].id, // Parent user
+        userId: parentUser.id, // Parent user
         emailEnabled: true,
         smsEnabled: false,
         appointmentReminders: true,
@@ -772,10 +785,10 @@ async function main() {
       }
     }),
     prisma.notificationSettings.upsert({
-      where: { userId: users[2].id },
+      where: { userId: bhwUser.id },
       update: {},
       create: {
-        userId: users[2].id, // BHW user
+        userId: bhwUser.id, // BHW user
         emailEnabled: true,
         smsEnabled: true,
         appointmentReminders: true,
@@ -799,7 +812,7 @@ async function main() {
       recipientCount: 5,
       deliveredCount: 5,
       sentAt: new Date(),
-      createdBy: users[0].id // System Admin
+      createdBy: adminUser.id // System Admin
     }
   });
 
@@ -902,7 +915,7 @@ async function main() {
   await Promise.all([
     prisma.auditLog.create({
       data: {
-        userId: users[0].id, // System Admin
+        userId: adminUser.id, // System Admin
         action: 'System initialization completed',
         entityType: 'SYSTEM',
         entityId: 'system-init',
@@ -914,7 +927,7 @@ async function main() {
     }),
     prisma.auditLog.create({
       data: {
-        userId: users[1].id, // Barangay Captain
+        userId: captainUser.id, // Barangay Captain
         action: 'Created new announcement: Community Health Day',
         entityType: 'ANNOUNCEMENT',
         changes: {
@@ -925,7 +938,7 @@ async function main() {
     }),
     prisma.auditLog.create({
       data: {
-        userId: users[2].id, // BHW
+        userId: bhwUser.id, // BHW
         action: 'Updated patient record: Ana Martinez',
         entityType: 'PATIENT',
         entityId: patients[0].id,
@@ -947,7 +960,7 @@ async function main() {
         filePath: 'backup_2024_01_15_daily.sql',
         fileSize: 2048576, // 2MB
         status: 'COMPLETED',
-        initiatedBy: users[0].id, // System Admin
+        initiatedBy: adminUser.id, // System Admin
         startedAt: new Date('2024-01-15T02:00:00Z'),
         completedAt: new Date('2024-01-15T02:15:00Z'),
         notes: 'Daily automated backup completed successfully'
@@ -959,7 +972,7 @@ async function main() {
         filePath: 'backup_2024_01_20_manual.sql',
         fileSize: 2156789, // 2.1MB
         status: 'COMPLETED',
-        initiatedBy: users[0].id, // System Admin
+        initiatedBy: adminUser.id, // System Admin
         startedAt: new Date('2024-01-20T10:30:00Z'),
         completedAt: new Date('2024-01-20T10:45:00Z'),
         notes: 'Manual backup before system update'
@@ -971,12 +984,9 @@ async function main() {
 
   console.log('🎉 Database seeding completed successfully!');
   console.log('\n📋 Sample Login Credentials:');
-  console.log('System Admin: admin@theycare.com / password123');
-  console.log('Barangay Captain: captain@theycare.com / password123');
-  console.log('BHW: bhw@theycare.com / password123');
-  console.log('Daycare Teacher: teacher@theycare.com / password123');
-  console.log('SK Chairman: sk@theycare.com / password123');
-  console.log('Parent/Resident: parent@theycare.com / password123');
+  sampleUsers.forEach(userInfo => {
+    console.log(`${userInfo.roles.join(', ')}: ${userInfo.email} / password123`);
+  });
 }
 
 main()

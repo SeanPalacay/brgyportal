@@ -350,6 +350,37 @@ const getRoleBasedNavigation = (userRole: string) => {
     };
   }
 
+  // KK Member - SK events + announcements only
+  if (userRole === 'KK_MEMBER') {
+    return {
+      main: [
+        {
+          title: "Dashboard",
+          url: "/dashboard",
+          icon: LayoutDashboard,
+          isActive: true,
+        },
+        {
+          title: "SK Events",
+          url: "/sk/event-registration",
+          icon: Calendar,
+          items: [
+            { title: "Event Registration", url: "/sk/event-registration" },
+            { title: "My Registrations", url: "/events/my-registrations" },
+          ],
+        },
+        {
+          title: "Announcements",
+          url: "/announcements",
+          icon: Megaphone,
+        },
+      ],
+      quickActions: [
+        { name: "Register for Event", url: "/sk/event-registration", icon: Calendar },
+      ],
+    };
+  }
+
 
 
   // Visitor - Public access only

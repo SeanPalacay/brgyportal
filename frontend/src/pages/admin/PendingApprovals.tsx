@@ -185,6 +185,8 @@ export default function PendingApprovals() {
         return 'bg-orange-100 text-orange-800 border-orange-300';
       case 'PARENT_RESIDENT':
         return 'bg-green-100 text-green-800 border-green-300';
+      case 'KK_MEMBER':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
       case 'PATIENT':
         return 'bg-cyan-100 text-cyan-800 border-cyan-300';
       default:

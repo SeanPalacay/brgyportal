@@ -114,7 +114,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
     const validRoles = [
       'SYSTEM_ADMIN', 'BARANGAY_CAPTAIN', 'BARANGAY_OFFICIAL',
       'BHW', 'BHW_COORDINATOR', 'DAYCARE_STAFF', 'DAYCARE_TEACHER',
-      'SK_OFFICER', 'SK_CHAIRMAN', 'PARENT_RESIDENT', 'VISITOR'
+      'SK_OFFICER', 'SK_CHAIRMAN', 'PARENT_RESIDENT', 'KK_MEMBER', 'VISITOR'
     ];
 
     const invalidRoles = roles.filter(role => !validRoles.includes(role));
@@ -341,7 +341,7 @@ export const updateUserRole = async (req: AuthRequest, res: Response) => {
     const validRoles = [
       'SYSTEM_ADMIN', 'BARANGAY_CAPTAIN', 'BARANGAY_OFFICIAL',
       'BHW', 'BHW_COORDINATOR', 'DAYCARE_STAFF', 'DAYCARE_TEACHER',
-      'SK_OFFICER', 'SK_CHAIRMAN', 'PARENT_RESIDENT', 'VISITOR'
+      'SK_OFFICER', 'SK_CHAIRMAN', 'PARENT_RESIDENT', 'KK_MEMBER', 'VISITOR'
     ];
 
     if (!validRoles.includes(role)) {
@@ -392,7 +392,7 @@ export const updateUserRoles = async (req: AuthRequest, res: Response) => {
     const validRoles = [
       'SYSTEM_ADMIN', 'BARANGAY_CAPTAIN', 'BARANGAY_OFFICIAL',
       'BHW', 'BHW_COORDINATOR', 'DAYCARE_STAFF', 'DAYCARE_TEACHER',
-      'SK_OFFICER', 'SK_CHAIRMAN', 'PARENT_RESIDENT', 'VISITOR'
+      'SK_OFFICER', 'SK_CHAIRMAN', 'PARENT_RESIDENT', 'KK_MEMBER', 'VISITOR'
     ];
 
     if (!Array.isArray(roles) || roles.length === 0) {

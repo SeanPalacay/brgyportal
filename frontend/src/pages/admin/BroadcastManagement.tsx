@@ -34,6 +34,7 @@ const AVAILABLE_ROLES = [
   'SK_OFFICER',
   'SK_CHAIRMAN',
   'PARENT_RESIDENT',
+  'KK_MEMBER',
   'VISITOR'
 ];
 
