@@ -55,7 +55,7 @@ interface ProfileFormData {
 
   // Demographic Characteristics (for under-30 users)
   youthAgeGroup: string;
-  youthClassification: string[];
+  youthClassification: string;
   educationalBackground: string;
   workStatus: string;
   registeredSkVoter: string;
@@ -97,6 +97,18 @@ const PHILIPPINE_REGIONS = [
   'BARMM - Bangsamoro Autonomous Region in Muslim Mindanao'
 ];
 
+const PUROK_ZONES = [
+  'Purok 1',
+  'Purok 2',
+  'Purok 3',
+  'Purok 4',
+  'Purok 5A',
+  'Purok 5B',
+  'Purok 6',
+  'Purok 7',
+  'Relocation site'
+];
+
 export default function YouthRegistration() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showConsentModal, setShowConsentModal] = useState(false);
@@ -121,7 +133,7 @@ export default function YouthRegistration() {
     password: '',
     confirmPassword: '',
     youthAgeGroup: '',
-    youthClassification: [],
+    youthClassification: '',
     educationalBackground: '',
     workStatus: '',
     registeredSkVoter: '',
@@ -224,6 +236,7 @@ export default function YouthRegistration() {
           // For under-30 users: Youth Demographics
           return !!(
             formData.youthAgeGroup &&
+            formData.youthClassification &&
             formData.educationalBackground &&
             formData.workStatus &&
             formData.registeredSkVoter &&
@@ -457,13 +470,21 @@ export default function YouthRegistration() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="purokZone">Purok/Zone *</Label>
-                      <Input
-                        id="purokZone"
-                        placeholder="e.g., Purok 1, Zone 2"
+                      <Select
                         value={formData.purokZone}
-                        onChange={(e) => handleInputChange('purokZone', e.target.value)}
-                        required
-                      />
+                        onValueChange={(value) => handleInputChange('purokZone', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Purok/Zone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PUROK_ZONES.map((purok) => (
+                            <SelectItem key={purok} value={purok}>
+                              {purok}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label htmlFor="barangay">Barangay *</Label>
@@ -842,53 +863,6 @@ export default function YouthRegistration() {
                     </div>
                   </RadioGroup>
                 </div>
-
-                {/* Solo Parent and Others */}
-                <div className="space-y-3">
-                  <Label className="text-base font-medium">Additional Information</Label>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="soloParent"
-                        checked={formData.soloParent}
-                        onCheckedChange={(checked) =>
-                          setFormData(prev => ({ ...prev, soloParent: checked as boolean }))
-                        }
-                      />
-                      <Label htmlFor="soloParent" className="font-medium">Solo Parent</Label>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="others"
-                          checked={formData.others}
-                          onCheckedChange={(checked) => {
-                            setFormData(prev => ({ ...prev, others: checked as boolean }));
-                            // Clear the text field if others is unchecked
-                            if (!checked) {
-                              setFormData(prev => ({ ...prev, othersSpecify: '' }));
-                            }
-                          }}
-                        />
-                        <Label htmlFor="others" className="font-medium">Others</Label>
-                      </div>
-
-                      {formData.others && (
-                        <div className="ml-6 mt-2">
-                          <Label htmlFor="othersSpecify" className="text-sm">Please specify:</Label>
-                          <Input
-                            id="othersSpecify"
-                            placeholder="Type here..."
-                            value={formData.othersSpecify}
-                            onChange={(e) => handleInputChange('othersSpecify', e.target.value)}
-                            className="mt-1"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           );
@@ -976,13 +950,21 @@ export default function YouthRegistration() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="purokZone">Purok/Zone *</Label>
-                      <Input
-                        id="purokZone"
-                        placeholder="e.g., Purok 1, Zone 2"
+                      <Select
                         value={formData.purokZone}
-                        onChange={(e) => handleInputChange('purokZone', e.target.value)}
-                        required
-                      />
+                        onValueChange={(value) => handleInputChange('purokZone', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Purok/Zone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PUROK_ZONES.map((purok) => (
+                            <SelectItem key={purok} value={purok}>
+                              {purok}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label htmlFor="barangay">Barangay *</Label>
@@ -1281,31 +1263,69 @@ export default function YouthRegistration() {
                 <div>
                   <Label className="text-base font-medium">Youth Classification *</Label>
                   <p className="text-xs text-muted-foreground mb-3">
-                    Select all categories that describe your current situation
+                    Select the category that best describes your current situation
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <RadioGroup
+                    value={formData.youthClassification}
+                    onValueChange={(value) => {
+                      handleInputChange('youthClassification', value);
+                      // Update solo parent and others based on selection
+                      if (value === 'Solo Parent') {
+                        setFormData(prev => ({ ...prev, soloParent: true, others: false, othersSpecify: '' }));
+                      } else if (value === 'Others') {
+                        setFormData(prev => ({ ...prev, soloParent: false, others: true }));
+                      } else {
+                        setFormData(prev => ({ ...prev, soloParent: false, others: false, othersSpecify: '' }));
+                      }
+                    }}
+                    className="space-y-3"
+                  >
                     {[
                       { value: 'In-school youth', desc: 'Currently enrolled in school' },
                       { value: 'Out of school youth', desc: 'Not currently in school' },
                       { value: 'Working Youth', desc: 'Currently employed or working' },
-                      { value: 'Teenage Parent', desc: 'Parent under 20 years old' }
+                      { value: 'Teenage Parent', desc: 'Parent under 20 years old' },
+                      { value: 'Solo Parent', desc: 'Single parent raising children alone' },
                     ].map((classification) => (
                       <div key={classification.value} className="flex items-start space-x-2 p-2 rounded border">
-                        <Checkbox
+                        <RadioGroupItem
+                          value={classification.value}
                           id={classification.value}
-                          checked={formData.youthClassification.includes(classification.value)}
-                          onCheckedChange={(checked) =>
-                            handleArrayChange('youthClassification', classification.value, checked as boolean)
-                          }
                           className="mt-1"
                         />
-                        <div>
+                        <div className="flex-1">
                           <Label htmlFor={classification.value} className="font-medium">{classification.value}</Label>
                           <p className="text-xs text-muted-foreground">{classification.desc}</p>
                         </div>
                       </div>
                     ))}
-                  </div>
+
+                    {/* Others option with text input */}
+                    <div className="flex items-start space-x-2 p-2 rounded border">
+                      <RadioGroupItem
+                        value="Others"
+                        id="Others"
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <Label htmlFor="Others" className="font-medium">Others</Label>
+                        <p className="text-xs text-muted-foreground">Other classification not listed above</p>
+
+                        {formData.youthClassification === 'Others' && (
+                          <div className="mt-2">
+                            <Label htmlFor="othersSpecify" className="text-sm">Please specify:</Label>
+                            <Input
+                              id="othersSpecify"
+                              placeholder="Type here..."
+                              value={formData.othersSpecify}
+                              onChange={(e) => handleInputChange('othersSpecify', e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </RadioGroup>
                 </div>
 
                 {/* Educational Background */}
@@ -1535,53 +1555,6 @@ export default function YouthRegistration() {
                         <Label htmlFor={need}>{need}</Label>
                       </div>
                     ))}
-                  </div>
-                </div>
-
-                {/* Solo Parent and Others */}
-                <div className="space-y-3">
-                  <Label className="text-base font-medium">Additional Information</Label>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="soloParent-youth"
-                        checked={formData.soloParent}
-                        onCheckedChange={(checked) =>
-                          setFormData(prev => ({ ...prev, soloParent: checked as boolean }))
-                        }
-                      />
-                      <Label htmlFor="soloParent-youth" className="font-medium">Solo Parent</Label>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="others-youth"
-                          checked={formData.others}
-                          onCheckedChange={(checked) => {
-                            setFormData(prev => ({ ...prev, others: checked as boolean }));
-                            // Clear the text field if others is unchecked
-                            if (!checked) {
-                              setFormData(prev => ({ ...prev, othersSpecify: '' }));
-                            }
-                          }}
-                        />
-                        <Label htmlFor="others-youth" className="font-medium">Others</Label>
-                      </div>
-
-                      {formData.others && (
-                        <div className="ml-6 mt-2">
-                          <Label htmlFor="othersSpecify-youth" className="text-sm">Please specify:</Label>
-                          <Input
-                            id="othersSpecify-youth"
-                            placeholder="Type here..."
-                            value={formData.othersSpecify}
-                            onChange={(e) => handleInputChange('othersSpecify', e.target.value)}
-                            className="mt-1"
-                          />
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               </CardContent>

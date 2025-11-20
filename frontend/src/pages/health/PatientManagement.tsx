@@ -821,15 +821,15 @@ export default function PatientManagement() {
 
           <Card className="bg-linear-to-br from-accent/5 to-accent/10 border-accent/20 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-accent-foreground">
+              <CardTitle className="text-sm font-medium text-foreground">
                 Active Cases
               </CardTitle>
               <div className="p-2 bg-accent rounded-full">
-                <Activity className="h-4 w-4 text-accent-foreground" />
+                <Activity className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-accent-foreground">{patients.length}</div>
+              <div className="text-3xl font-bold text-foreground">{patients.length}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 Ongoing treatments
               </p>
