@@ -67,6 +67,7 @@ interface ProfileFormData {
   lgbtqCommunity: string;
   youthSpecificNeeds: string[];
   soloParent: boolean;
+  soloParentOther: string;
 
   // Interests (for under-30 users)
   sports: string[];
@@ -131,6 +132,7 @@ export default function YouthRegistration() {
     lgbtqCommunity: '',
     youthSpecificNeeds: [],
     soloParent: false,
+    soloParentOther: '',
     sports: [],
     sportsOtherSpecify: '',
     hobbies: []
@@ -345,6 +347,7 @@ export default function YouthRegistration() {
         lgbtqCommunity: formData.lgbtqCommunity === 'YES',
         youthSpecificNeeds: formData.youthSpecificNeeds,
         soloParent: formData.soloParent,
+        soloParentOther: formData.soloParentOther,
         sports: formData.sports,
         sportsOtherSpecify: formData.sportsOtherSpecify,
         hobbies: formData.hobbies
@@ -838,15 +841,37 @@ export default function YouthRegistration() {
                 </div>
 
                 {/* Solo Parent */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="soloParent"
-                    checked={formData.soloParent}
-                    onCheckedChange={(checked) =>
-                      setFormData(prev => ({ ...prev, soloParent: checked as boolean }))
-                    }
-                  />
-                  <Label htmlFor="soloParent" className="font-medium">Solo Parent</Label>
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">Additional Information</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="soloParent"
+                        checked={formData.soloParent}
+                        onCheckedChange={(checked) => {
+                          setFormData(prev => ({ ...prev, soloParent: checked as boolean }));
+                          // Clear the other field if solo parent is unchecked
+                          if (!checked) {
+                            setFormData(prev => ({ ...prev, soloParentOther: '' }));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="soloParent" className="font-medium">Solo Parent</Label>
+                    </div>
+
+                    {formData.soloParent && (
+                      <div className="ml-6 mt-2">
+                        <Label htmlFor="soloParentOther" className="text-sm">Please specify (Optional):</Label>
+                        <Input
+                          id="soloParentOther"
+                          placeholder="e.g., Widowed, Separated, etc."
+                          value={formData.soloParentOther}
+                          onChange={(e) => handleInputChange('soloParentOther', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1499,15 +1524,37 @@ export default function YouthRegistration() {
                 </div>
 
                 {/* Solo Parent */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="soloParent"
-                    checked={formData.soloParent}
-                    onCheckedChange={(checked) =>
-                      setFormData(prev => ({ ...prev, soloParent: checked as boolean }))
-                    }
-                  />
-                  <Label htmlFor="soloParent" className="font-medium">Solo Parent</Label>
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">Additional Information</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="soloParent-youth"
+                        checked={formData.soloParent}
+                        onCheckedChange={(checked) => {
+                          setFormData(prev => ({ ...prev, soloParent: checked as boolean }));
+                          // Clear the other field if solo parent is unchecked
+                          if (!checked) {
+                            setFormData(prev => ({ ...prev, soloParentOther: '' }));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="soloParent-youth" className="font-medium">Solo Parent</Label>
+                    </div>
+
+                    {formData.soloParent && (
+                      <div className="ml-6 mt-2">
+                        <Label htmlFor="soloParentOther-youth" className="text-sm">Please specify (Optional):</Label>
+                        <Input
+                          id="soloParentOther-youth"
+                          placeholder="e.g., Widowed, Separated, etc."
+                          value={formData.soloParentOther}
+                          onChange={(e) => handleInputChange('soloParentOther', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
