@@ -962,11 +962,18 @@ export default function UserManagement() {
                           {/* Youth Classification */}
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">Youth Classification</Label>
-                            <div className="flex flex-wrap gap-1">
+                            <div className="flex flex-wrap gap-2 items-center">
                               {selectedUser.profile.youthClassification.length > 0 ? (
-                                selectedUser.profile.youthClassification.map((classification, idx) => (
-                                  <Badge key={idx} variant="outline">{classification}</Badge>
-                                ))
+                                <>
+                                  <Badge variant="outline" className="text-sm">
+                                    {selectedUser.profile.youthClassification[0]}
+                                  </Badge>
+                                  {selectedUser.profile.youthClassification[0] === 'Others' && selectedUser.profile.othersSpecify && (
+                                    <span className="text-sm text-muted-foreground">
+                                      - {selectedUser.profile.othersSpecify}
+                                    </span>
+                                  )}
+                                </>
                               ) : (
                                 <span className="text-sm text-muted-foreground">None specified</span>
                               )}
@@ -1026,38 +1033,12 @@ export default function UserManagement() {
                           <Separator />
 
                           {/* Special Categories */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">LGBTQ+ Community</Label>
-                              <Badge variant={selectedUser.profile.lgbtqCommunity ? 'default' : 'secondary'}>
-                                {selectedUser.profile.lgbtqCommunity ? 'Yes' : 'No'}
-                              </Badge>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Solo Parent</Label>
-                              <Badge variant={selectedUser.profile.soloParent ? 'default' : 'secondary'}>
-                                {selectedUser.profile.soloParent ? 'Yes' : 'No'}
-                              </Badge>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Others</Label>
-                              <Badge variant={selectedUser.profile.others ? 'default' : 'secondary'}>
-                                {selectedUser.profile.others ? 'Yes' : 'No'}
-                              </Badge>
-                            </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">LGBTQ+ Community</Label>
+                            <Badge variant={selectedUser.profile.lgbtqCommunity ? 'default' : 'secondary'}>
+                              {selectedUser.profile.lgbtqCommunity ? 'Yes' : 'No'}
+                            </Badge>
                           </div>
-
-                          {/* Others Specification */}
-                          {selectedUser.profile.others && selectedUser.profile.othersSpecify && (
-                            <>
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">Others - Additional Information</Label>
-                                <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
-                                  <p className="text-sm text-amber-900">{selectedUser.profile.othersSpecify}</p>
-                                </div>
-                              </div>
-                            </>
-                          )}
 
                           <Separator />
 
