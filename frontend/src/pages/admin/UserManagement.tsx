@@ -90,6 +90,8 @@ interface YouthProfile {
   lgbtqCommunity: boolean;
   youthSpecificNeeds: string[];
   soloParent: boolean;
+  others: boolean;
+  othersSpecify?: string;
   sports: string[];
   sportsOtherSpecify?: string;
   hobbies: string[];
@@ -1054,6 +1056,17 @@ export default function UserManagement() {
                               )}
                             </div>
                           </div>
+
+                          {/* Others Field */}
+                          {selectedUser.profile.others && selectedUser.profile.othersSpecify && (
+                            <>
+                              <Separator />
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">Other Information</Label>
+                                <p className="text-sm bg-muted p-3 rounded-md">{selectedUser.profile.othersSpecify}</p>
+                              </div>
+                            </>
+                          )}
                         </>
                       ) : (
                         <div className="text-center py-8">
@@ -1070,13 +1083,15 @@ export default function UserManagement() {
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">Sports Interests</Label>
                             <div className="flex flex-wrap gap-1">
-                              {selectedUser.profile.sports.length > 0 ? (
+                              {selectedUser.profile.sports.length > 0 || selectedUser.profile.sportsOtherSpecify ? (
                                 <>
                                   {selectedUser.profile.sports.map((sport, idx) => (
                                     <Badge key={idx} variant="outline">{sport}</Badge>
                                   ))}
                                   {selectedUser.profile.sportsOtherSpecify && (
-                                    <Badge variant="outline">{selectedUser.profile.sportsOtherSpecify}</Badge>
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                      Others: {selectedUser.profile.sportsOtherSpecify}
+                                    </Badge>
                                   )}
                                 </>
                               ) : (

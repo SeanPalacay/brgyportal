@@ -489,12 +489,45 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Delete the user
-    await prisma.user.delete({
-      where: { id: userId }
+    // Delete related records in transaction to avoid foreign key constraint errors
+    await prisma.$transaction(async (tx) => {
+      // Delete youth profile if exists
+      await tx.youthProfile.deleteMany({ where: { userId } });
+
+      // Delete notification settings
+      await tx.notificationSettings.deleteMany({ where: { userId } });
+
+      // Delete notifications
+      await tx.notification.deleteMany({ where: { userId } });
+
+      // Delete event registrations
+      await tx.eventRegistration.deleteMany({ where: { userId } });
+
+      // Delete daycare registrations (and cascade to students)
+      await tx.daycareRegistration.deleteMany({ where: { parentId: userId } });
+
+      // Nullify guardianUserId for patients where this user is guardian
+      await tx.patient.updateMany({
+        where: { guardianUserId: userId },
+        data: { guardianUserId: null }
+      });
+
+      // Delete patients owned by this user
+      await tx.patient.deleteMany({ where: { userId } });
+
+      // Nullify userId in audit logs (keep logs for historical tracking)
+      await tx.auditLog.updateMany({
+        where: { userId },
+        data: { userId: null }
+      });
+
+      // Delete the user
+      await tx.user.delete({
+        where: { id: userId }
+      });
     });
 
-    // Log the action
+    // Log the action (outside transaction to avoid issues)
     await prisma.auditLog.create({
       data: {
         userId: req.user!.userId,
@@ -508,7 +541,7 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Delete user error:', error);
-    res.status(500).json({ error: 'Failed to delete user' });
+    res.status(500).json({ error: 'Failed to delete user. The user may have related records that cannot be deleted.' });
   }
 };
 
