@@ -67,7 +67,8 @@ interface ProfileFormData {
   lgbtqCommunity: string;
   youthSpecificNeeds: string[];
   soloParent: boolean;
-  soloParentOther: string;
+  others: boolean;
+  othersSpecify: string;
 
   // Interests (for under-30 users)
   sports: string[];
@@ -132,7 +133,8 @@ export default function YouthRegistration() {
     lgbtqCommunity: '',
     youthSpecificNeeds: [],
     soloParent: false,
-    soloParentOther: '',
+    others: false,
+    othersSpecify: '',
     sports: [],
     sportsOtherSpecify: '',
     hobbies: []
@@ -347,7 +349,8 @@ export default function YouthRegistration() {
         lgbtqCommunity: formData.lgbtqCommunity === 'YES',
         youthSpecificNeeds: formData.youthSpecificNeeds,
         soloParent: formData.soloParent,
-        soloParentOther: formData.soloParentOther,
+        others: formData.others,
+        othersSpecify: formData.othersSpecify,
         sports: formData.sports,
         sportsOtherSpecify: formData.sportsOtherSpecify,
         hobbies: formData.hobbies
@@ -840,37 +843,50 @@ export default function YouthRegistration() {
                   </RadioGroup>
                 </div>
 
-                {/* Solo Parent */}
+                {/* Solo Parent and Others */}
                 <div className="space-y-3">
                   <Label className="text-base font-medium">Additional Information</Label>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="soloParent"
                         checked={formData.soloParent}
-                        onCheckedChange={(checked) => {
-                          setFormData(prev => ({ ...prev, soloParent: checked as boolean }));
-                          // Clear the other field if solo parent is unchecked
-                          if (!checked) {
-                            setFormData(prev => ({ ...prev, soloParentOther: '' }));
-                          }
-                        }}
+                        onCheckedChange={(checked) =>
+                          setFormData(prev => ({ ...prev, soloParent: checked as boolean }))
+                        }
                       />
                       <Label htmlFor="soloParent" className="font-medium">Solo Parent</Label>
                     </div>
 
-                    {formData.soloParent && (
-                      <div className="ml-6 mt-2">
-                        <Label htmlFor="soloParentOther" className="text-sm">Please specify (Optional):</Label>
-                        <Input
-                          id="soloParentOther"
-                          placeholder="e.g., Widowed, Separated, etc."
-                          value={formData.soloParentOther}
-                          onChange={(e) => handleInputChange('soloParentOther', e.target.value)}
-                          className="mt-1"
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="others"
+                          checked={formData.others}
+                          onCheckedChange={(checked) => {
+                            setFormData(prev => ({ ...prev, others: checked as boolean }));
+                            // Clear the text field if others is unchecked
+                            if (!checked) {
+                              setFormData(prev => ({ ...prev, othersSpecify: '' }));
+                            }
+                          }}
                         />
+                        <Label htmlFor="others" className="font-medium">Others</Label>
                       </div>
-                    )}
+
+                      {formData.others && (
+                        <div className="ml-6 mt-2">
+                          <Label htmlFor="othersSpecify" className="text-sm">Please specify:</Label>
+                          <Input
+                            id="othersSpecify"
+                            placeholder="Type here..."
+                            value={formData.othersSpecify}
+                            onChange={(e) => handleInputChange('othersSpecify', e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -1523,37 +1539,50 @@ export default function YouthRegistration() {
                   </div>
                 </div>
 
-                {/* Solo Parent */}
+                {/* Solo Parent and Others */}
                 <div className="space-y-3">
                   <Label className="text-base font-medium">Additional Information</Label>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="soloParent-youth"
                         checked={formData.soloParent}
-                        onCheckedChange={(checked) => {
-                          setFormData(prev => ({ ...prev, soloParent: checked as boolean }));
-                          // Clear the other field if solo parent is unchecked
-                          if (!checked) {
-                            setFormData(prev => ({ ...prev, soloParentOther: '' }));
-                          }
-                        }}
+                        onCheckedChange={(checked) =>
+                          setFormData(prev => ({ ...prev, soloParent: checked as boolean }))
+                        }
                       />
                       <Label htmlFor="soloParent-youth" className="font-medium">Solo Parent</Label>
                     </div>
 
-                    {formData.soloParent && (
-                      <div className="ml-6 mt-2">
-                        <Label htmlFor="soloParentOther-youth" className="text-sm">Please specify (Optional):</Label>
-                        <Input
-                          id="soloParentOther-youth"
-                          placeholder="e.g., Widowed, Separated, etc."
-                          value={formData.soloParentOther}
-                          onChange={(e) => handleInputChange('soloParentOther', e.target.value)}
-                          className="mt-1"
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="others-youth"
+                          checked={formData.others}
+                          onCheckedChange={(checked) => {
+                            setFormData(prev => ({ ...prev, others: checked as boolean }));
+                            // Clear the text field if others is unchecked
+                            if (!checked) {
+                              setFormData(prev => ({ ...prev, othersSpecify: '' }));
+                            }
+                          }}
                         />
+                        <Label htmlFor="others-youth" className="font-medium">Others</Label>
                       </div>
-                    )}
+
+                      {formData.others && (
+                        <div className="ml-6 mt-2">
+                          <Label htmlFor="othersSpecify-youth" className="text-sm">Please specify:</Label>
+                          <Input
+                            id="othersSpecify-youth"
+                            placeholder="Type here..."
+                            value={formData.othersSpecify}
+                            onChange={(e) => handleInputChange('othersSpecify', e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>

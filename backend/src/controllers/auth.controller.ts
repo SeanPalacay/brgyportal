@@ -139,7 +139,8 @@ export const register = async (req: Request, res: Response) => {
             lgbtqCommunity: profileData.lgbtqCommunity,
             youthSpecificNeeds: profileData.youthSpecificNeeds,
             soloParent: profileData.soloParent,
-            soloParentOther: profileData.soloParentOther,
+            others: profileData.others,
+            othersSpecify: profileData.othersSpecify,
             sports: profileData.sports,
             sportsOtherSpecify: profileData.sportsOtherSpecify,
             hobbies: profileData.hobbies

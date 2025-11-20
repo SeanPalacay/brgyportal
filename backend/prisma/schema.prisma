@@ -627,7 +627,8 @@ model YouthProfile {
   lgbtqCommunity            Boolean
   youthSpecificNeeds        String[] // Person w/ Disability, Children in conflict w/ law, Indigenous People
   soloParent                Boolean  @default(false)
-  soloParentOther           String?  // Additional information when soloParent is true
+  others                    Boolean  @default(false)
+  othersSpecify             String?  // Additional information when others is true
 
   // Interests
   sports                    String[] // Basketball, Volleyball, Badminton, Other's
