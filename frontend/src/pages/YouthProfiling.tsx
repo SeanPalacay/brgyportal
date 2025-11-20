@@ -747,8 +747,7 @@ export default function YouthProfiling() {
                       className="space-y-2 mt-2"
                     >
                       {[
-                        'There was no KK Assembly',
-                        'Meeting',
+                        'There was no KK Assembly Meeting',
                         'Not interested to attend'
                       ].map((reason) => (
                         <div key={reason} className="flex items-center space-x-2">
