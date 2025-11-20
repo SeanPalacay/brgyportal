@@ -1026,7 +1026,7 @@ export default function UserManagement() {
                           <Separator />
 
                           {/* Special Categories */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
                               <Label className="text-sm font-medium">LGBTQ+ Community</Label>
                               <Badge variant={selectedUser.profile.lgbtqCommunity ? 'default' : 'secondary'}>
@@ -1039,7 +1039,25 @@ export default function UserManagement() {
                                 {selectedUser.profile.soloParent ? 'Yes' : 'No'}
                               </Badge>
                             </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Others</Label>
+                              <Badge variant={selectedUser.profile.others ? 'default' : 'secondary'}>
+                                {selectedUser.profile.others ? 'Yes' : 'No'}
+                              </Badge>
+                            </div>
                           </div>
+
+                          {/* Others Specification */}
+                          {selectedUser.profile.others && selectedUser.profile.othersSpecify && (
+                            <>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">Others - Additional Information</Label>
+                                <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+                                  <p className="text-sm text-amber-900">{selectedUser.profile.othersSpecify}</p>
+                                </div>
+                              </div>
+                            </>
+                          )}
 
                           <Separator />
 
@@ -1056,17 +1074,6 @@ export default function UserManagement() {
                               )}
                             </div>
                           </div>
-
-                          {/* Others Field */}
-                          {selectedUser.profile.others && selectedUser.profile.othersSpecify && (
-                            <>
-                              <Separator />
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">Other Information</Label>
-                                <p className="text-sm bg-muted p-3 rounded-md">{selectedUser.profile.othersSpecify}</p>
-                              </div>
-                            </>
-                          )}
                         </>
                       ) : (
                         <div className="text-center py-8">
