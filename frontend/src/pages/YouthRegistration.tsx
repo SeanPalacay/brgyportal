@@ -350,7 +350,7 @@ export default function YouthRegistration() {
         civilStatus: formData.civilStatus,
         religion: formData.religion,
         youthAgeGroup: formData.youthAgeGroup,
-        youthClassification: formData.youthClassification,
+        youthClassification: formData.youthClassification ? [formData.youthClassification] : [],
         educationalBackground: formData.educationalBackground,
         workStatus: formData.workStatus,
         registeredSkVoter: formData.registeredSkVoter === 'YES',
