@@ -468,7 +468,23 @@ export const getAttendance = async (req: AuthRequest, res: Response) => {
       orderBy: { date: 'desc' }
     });
 
-    res.json({ attendance });
+    // Get user names for recordedBy
+    const userIds = [...new Set(attendance.map(a => a.recordedBy))];
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, firstName: true, lastName: true }
+    });
+    const userMap = users.reduce((acc, u) => {
+      acc[u.id] = `${u.firstName} ${u.lastName}`;
+      return acc;
+    }, {} as Record<string, string>);
+
+    const attendanceWithNames = attendance.map(a => ({
+      ...a,
+      recordedByName: userMap[a.recordedBy] || 'Unknown'
+    }));
+
+    res.json({ attendance: attendanceWithNames });
   } catch (error) {
     console.error('Get attendance error:', error);
     res.status(500).json({ error: 'Failed to fetch attendance' });

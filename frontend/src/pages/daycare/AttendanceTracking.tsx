@@ -29,6 +29,7 @@ interface AttendanceRecord {
   notes?: string;
   remarks?: string;
   recordedBy: string;
+  recordedByName?: string;
 }
 
 export default function AttendanceTracking() {
@@ -351,7 +352,7 @@ export default function AttendanceTracking() {
                             {record.timeOut ? new Date(record.timeOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-'}
                           </TableCell>
                           <TableCell>{record.remarks || record.notes || '-'}</TableCell>
-                          <TableCell>{record.recordedBy}</TableCell>
+                          <TableCell>{record.recordedByName || record.recordedBy}</TableCell>
                           <TableCell>
                             <Button
                               size="sm"
