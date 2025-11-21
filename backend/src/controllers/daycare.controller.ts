@@ -479,10 +479,11 @@ export const getAttendance = async (req: AuthRequest, res: Response) => {
       return acc;
     }, {} as Record<string, string>);
 
-    const attendanceWithNames = attendance.map(a => ({
-      ...a,
-      recordedByName: userMap[a.recordedBy] || 'Unknown'
-    }));
+    const attendanceWithNames = attendance.map(a => {
+      const record = JSON.parse(JSON.stringify(a));
+      record.recordedByName = userMap[a.recordedBy] || 'Unknown';
+      return record;
+    });
 
     res.json({ attendance: attendanceWithNames });
   } catch (error) {
