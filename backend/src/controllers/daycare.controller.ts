@@ -10,13 +10,30 @@ import path from 'path';
 export const createDaycareRegistration = async (req: AuthRequest, res: Response) => {
   try {
     const parentId = req.user!.userId;
-    const registrationData = req.body;
+    const {
+      childFirstName,
+      childLastName,
+      childMiddleName,
+      childDateOfBirth,
+      childGender,
+      address,
+      parentContact,
+      emergencyContact,
+      notes
+    } = req.body;
 
     const registration = await prisma.daycareRegistration.create({
       data: {
-        ...registrationData,
         parentId,
-        childDateOfBirth: new Date(registrationData.childDateOfBirth)
+        childFirstName,
+        childLastName,
+        childMiddleName: childMiddleName || null,
+        childDateOfBirth: new Date(childDateOfBirth),
+        childGender,
+        address,
+        parentContact,
+        emergencyContact,
+        notes: notes || null
       },
       include: {
         parent: {
