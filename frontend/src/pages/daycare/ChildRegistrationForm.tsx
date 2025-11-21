@@ -47,7 +47,26 @@ export default function ChildRegistrationForm() {
     setLoading(true);
 
     try {
-      await api.post('/daycare/registrations', formData);
+      // Map frontend fields to backend schema
+      const payload = {
+        childFirstName: formData.childFirstName,
+        childMiddleName: formData.childMiddleName || null,
+        childLastName: formData.childLastName,
+        childDateOfBirth: formData.childDateOfBirth,
+        childGender: formData.childGender,
+        address: formData.childAddress, // Schema expects 'address' not 'childAddress'
+        parentContact: formData.parentContact,
+        emergencyContact: formData.emergencyContact,
+        notes: [
+          formData.childMedicalConditions && `Medical Conditions: ${formData.childMedicalConditions}`,
+          formData.childAllergies && `Allergies: ${formData.childAllergies}`,
+          formData.childMedications && `Medications: ${formData.childMedications}`,
+          formData.emergencyRelationship && `Emergency Relationship: ${formData.emergencyRelationship}`,
+          formData.emergencyPhone && `Emergency Phone: ${formData.emergencyPhone}`,
+          formData.additionalNotes
+        ].filter(Boolean).join('\n') || null
+      };
+      await api.post('/daycare/registrations', payload);
 
       toast.success('Daycare registration submitted successfully! You will receive a notification once it\'s reviewed.');
 
