@@ -30,6 +30,7 @@ const MyHealthRecords = lazy(() => import('./pages/health/MyHealthRecords'));
 const DaycareDashboard = lazy(() => import('./pages/daycare/DaycareDashboard'));
 const ChildRegistrationForm = lazy(() => import('./pages/daycare/ChildRegistrationForm'));
 const StudentRegistration = lazy(() => import('./pages/daycare/StudentRegistration'));
+const Enrollees = lazy(() => import('./pages/daycare/Enrollees'));
 const AttendanceTracking = lazy(() => import('./pages/daycare/AttendanceTracking'));
 const MyChildrenProgress = lazy(() => import('./pages/daycare/MyChildrenProgress'));
 const ProgressReports = lazy(() => import('./pages/daycare/ProgressReports'));
@@ -169,6 +170,11 @@ function App() {
             <Route path="/daycare/registrations" element={
               <ProtectedRoute>
                 <StudentRegistration />
+              </ProtectedRoute>
+            } />
+            <Route path="/daycare/enrollees" element={
+              <ProtectedRoute>
+                <Enrollees />
               </ProtectedRoute>
             } />
             <Route path="/daycare/attendance" element={

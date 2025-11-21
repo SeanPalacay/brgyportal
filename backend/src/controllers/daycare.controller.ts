@@ -259,6 +259,69 @@ export const getStudentById = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const createStudent = async (req: AuthRequest, res: Response) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      middleName,
+      dateOfBirth,
+      gender,
+      address,
+      emergencyContact,
+      allergies,
+      medicalConditions,
+      parentId
+    } = req.body;
+
+    const student = await prisma.daycareStudent.create({
+      data: {
+        firstName,
+        lastName,
+        middleName,
+        dateOfBirth: new Date(dateOfBirth),
+        gender,
+        address,
+        emergencyContact,
+        allergies: allergies || null,
+        medicalConditions: medicalConditions || null
+      }
+    });
+
+    res.status(201).json({
+      message: 'Student enrolled successfully',
+      student
+    });
+  } catch (error) {
+    console.error('Create student error:', error);
+    res.status(500).json({ error: 'Failed to enroll student' });
+  }
+};
+
+export const updateStudent = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    if (updateData.dateOfBirth) {
+      updateData.dateOfBirth = new Date(updateData.dateOfBirth);
+    }
+
+    const student = await prisma.daycareStudent.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json({
+      message: 'Student updated successfully',
+      student
+    });
+  } catch (error) {
+    console.error('Update student error:', error);
+    res.status(500).json({ error: 'Failed to update student' });
+  }
+};
+
 // ========== ATTENDANCE MANAGEMENT ==========
 
 export const recordAttendance = async (req: AuthRequest, res: Response) => {

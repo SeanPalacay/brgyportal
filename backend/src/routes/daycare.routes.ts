@@ -12,6 +12,8 @@ import {
   // Student Management
   getDaycareStudents,
   getStudentById,
+  createStudent,
+  updateStudent,
   // Attendance Management
   recordAttendance,
   getAttendance,
@@ -79,7 +81,9 @@ router.delete('/registrations/:id', authenticate, deleteDaycareRegistration);
 
 // ========== STUDENT ROUTES ==========
 router.get('/students', authenticate, getDaycareStudents);
+router.post('/students', authenticate, createStudent);
 router.get('/students/:id', authenticate, getStudentById);
+router.patch('/students/:id', authenticate, updateStudent);
 
 // ========== ATTENDANCE ROUTES ==========
 router.post('/attendance', authenticate, recordAttendance);

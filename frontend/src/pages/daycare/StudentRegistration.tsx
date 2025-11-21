@@ -45,7 +45,10 @@ export default function StudentRegistration() {
 
   const handleStatusUpdate = async (id: string, status: 'APPROVED' | 'REJECTED') => {
     try {
-      await api.patch(`/daycare/registrations/${id}`, { status });
+      const endpoint = status === 'APPROVED'
+        ? `/daycare/registrations/${id}/approve`
+        : `/daycare/registrations/${id}/reject`;
+      await api.patch(endpoint);
       toast.success(`Registration ${status.toLowerCase()} successfully`);
       fetchRegistrations();
     } catch (error) {

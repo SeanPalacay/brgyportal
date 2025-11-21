@@ -162,6 +162,7 @@ const getMultiRoleNavigation = (userRoles: string[], userPermissions: string[] =
 
   if (hasPermission('STUDENT_REGISTRATIONS')) {
     daycareItems.push({ title: "Registrations", url: "/daycare/registrations" });
+    daycareItems.push({ title: "Enrollees", url: "/daycare/enrollees" });
   }
 
   if (hasPermission('ATTENDANCE_TRACKING')) {
