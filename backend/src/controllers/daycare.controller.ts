@@ -119,7 +119,7 @@ export const getMyRegistrations = async (req: AuthRequest, res: Response) => {
 export const approveRegistration = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { notes, allergies, medicalConditions } = req.body;
+    const { notes, allergies, medicalConditions } = req.body || {};
     const reviewedBy = req.user!.userId;
 
     // Get the registration
@@ -176,7 +176,7 @@ export const approveRegistration = async (req: AuthRequest, res: Response) => {
 export const rejectRegistration = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { notes } = req.body;
+    const { notes } = req.body || {};
     const reviewedBy = req.user!.userId;
 
     const registration = await prisma.daycareRegistration.update({
