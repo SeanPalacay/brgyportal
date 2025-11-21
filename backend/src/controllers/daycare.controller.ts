@@ -270,27 +270,54 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
       address,
       emergencyContact,
       allergies,
-      medicalConditions,
-      parentId
+      medicalConditions
     } = req.body;
+    const createdBy = req.user!.userId;
 
-    const student = await prisma.daycareStudent.create({
-      data: {
-        firstName,
-        lastName,
-        middleName,
-        dateOfBirth: new Date(dateOfBirth),
-        gender,
-        address,
-        emergencyContact,
-        allergies: allergies || null,
-        medicalConditions: medicalConditions || null
-      }
+    // Create a direct enrollment registration and student in a transaction
+    const [registration, student] = await prisma.$transaction(async (tx) => {
+      // Create registration for direct enrollment (staff-initiated)
+      const reg = await tx.daycareRegistration.create({
+        data: {
+          parentId: createdBy,
+          childFirstName: firstName,
+          childLastName: lastName,
+          childMiddleName: middleName || null,
+          childDateOfBirth: new Date(dateOfBirth),
+          childGender: gender,
+          address,
+          parentContact: 'Direct Enrollment',
+          emergencyContact,
+          status: 'APPROVED',
+          reviewedAt: new Date(),
+          reviewedBy: createdBy,
+          notes: 'Direct enrollment by staff'
+        }
+      });
+
+      // Create the student linked to the registration
+      const stud = await tx.daycareStudent.create({
+        data: {
+          registrationId: reg.id,
+          firstName,
+          lastName,
+          middleName: middleName || null,
+          dateOfBirth: new Date(dateOfBirth),
+          gender,
+          address,
+          emergencyContact,
+          allergies: allergies || null,
+          medicalConditions: medicalConditions || null
+        }
+      });
+
+      return [reg, stud];
     });
 
     res.status(201).json({
       message: 'Student enrolled successfully',
-      student
+      student,
+      registration
     });
   } catch (error) {
     console.error('Create student error:', error);
