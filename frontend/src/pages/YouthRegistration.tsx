@@ -27,7 +27,9 @@ import {
   Shield,
   Users,
   Clock,
-  Check
+  Check,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -154,6 +156,7 @@ export default function YouthRegistration() {
 
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { register: registerUser } = useAuth();
 
@@ -207,7 +210,6 @@ export default function YouthRegistration() {
         return !!(
           formData.lastName &&
           formData.givenName &&
-          formData.middleName &&
           formData.purokZone &&
           formData.barangay &&
           formData.cityMunicipality &&
@@ -292,7 +294,7 @@ export default function YouthRegistration() {
       }
 
       const nameRegex = /^[a-zA-Z\s]+$/;
-      if (!nameRegex.test(formData.lastName) || !nameRegex.test(formData.givenName) || !nameRegex.test(formData.middleName)) {
+      if (!nameRegex.test(formData.lastName) || !nameRegex.test(formData.givenName) || (formData.middleName && !nameRegex.test(formData.middleName))) {
         toast.error('Invalid name format', {
           description: 'Names should only contain letters and spaces'
         });
@@ -434,7 +436,7 @@ export default function YouthRegistration() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="middleName">Middle Name *</Label>
+                      <Label htmlFor="middleName">Middle Name (Optional)</Label>
                       <Input
                         id="middleName"
                         placeholder="Santos"
@@ -443,7 +445,6 @@ export default function YouthRegistration() {
                           const value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
                           handleInputChange('middleName', value);
                         }}
-                        required
                       />
                     </div>
                     <div>
@@ -663,15 +664,25 @@ export default function YouthRegistration() {
                   </div>
                   <div>
                     <Label htmlFor="password">Password *</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Minimum 8 characters"
-                      value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
-                      minLength={8}
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Minimum 8 characters"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        minLength={8}
+                        required
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       Password must be at least 8 characters long
                     </p>
@@ -914,7 +925,7 @@ export default function YouthRegistration() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="middleName">Middle Name *</Label>
+                      <Label htmlFor="middleName">Middle Name (Optional)</Label>
                       <Input
                         id="middleName"
                         placeholder="Santos"
@@ -923,7 +934,6 @@ export default function YouthRegistration() {
                           const value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
                           handleInputChange('middleName', value);
                         }}
-                        required
                       />
                     </div>
                     <div>
@@ -1143,15 +1153,25 @@ export default function YouthRegistration() {
                   </div>
                   <div>
                     <Label htmlFor="password">Password *</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Minimum 8 characters"
-                      value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
-                      minLength={8}
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Minimum 8 characters"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        minLength={8}
+                        required
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       Password must be at least 8 characters long
                     </p>
