@@ -43,7 +43,7 @@ export default function SKDashboard() {
 
   const fetchSKStats = async () => {
     try {
-      const response = await api.get('/reports/sk-engagement');
+      const response = await api.get('/reports/sk');
       const report = response.data.report;
       setStats({
         totalEvents: report?.summary?.totalEvents || 0,
