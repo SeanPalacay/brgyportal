@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { FileText, Download, Award, TrendingUp, Calendar } from 'lucide-react';
+import { FileText, Download, Award, TrendingUp, Calendar, Edit, Trash2 } from 'lucide-react';
 
 interface Event {
   id: string;
@@ -46,13 +46,18 @@ export default function SKCertificateGenerator() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingCertificate, setEditingCertificate] = useState<Certificate | null>(null);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedUser, setSelectedUser] = useState('');
   const [formData, setFormData] = useState({
     certificateType: '',
     participationType: '',
     achievements: '',
-    eventDate: ''
+    eventDate: '',
+    certificateNumber: '',
+    purpose: '',
+    recommendations: ''
   });
 
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -151,7 +156,7 @@ export default function SKCertificateGenerator() {
   const handleDownload = async (certificateId: string) => {
     try {
       toast.info('Generating PDF...');
-      
+
       const token = localStorage.getItem('token');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/sk/certificates/${certificateId}/download`, {
         method: 'GET',
@@ -159,11 +164,11 @@ export default function SKCertificateGenerator() {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to download certificate');
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -173,11 +178,72 @@ export default function SKCertificateGenerator() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast.success('Certificate downloaded successfully!');
     } catch (error) {
       console.error('Download error:', error);
       toast.error('Failed to download certificate');
+    }
+  };
+
+  const handleEdit = (certificate: Certificate) => {
+    setEditingCertificate(certificate);
+    setFormData({
+      certificateType: certificate.certificateType,
+      participationType: certificate.participationType || '',
+      achievements: certificate.achievements || '',
+      eventDate: '',
+      certificateNumber: certificate.certificateNumber,
+      purpose: '',
+      recommendations: ''
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editingCertificate) return;
+
+    try {
+      await api.put(`/sk/certificates/${editingCertificate.id}`, {
+        certificateType: formData.certificateType,
+        certificateNumber: formData.certificateNumber,
+        purpose: formData.purpose,
+        achievements: formData.achievements,
+        recommendations: formData.recommendations,
+        issuedBy: currentUser.id
+      });
+
+      toast.success('Certificate updated successfully!');
+      setShowEditDialog(false);
+      setEditingCertificate(null);
+      setFormData({
+        certificateType: '',
+        participationType: '',
+        achievements: '',
+        eventDate: '',
+        certificateNumber: '',
+        purpose: '',
+        recommendations: ''
+      });
+      fetchCertificates();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to update certificate');
+    }
+  };
+
+  const handleDelete = async (certificateId: string) => {
+    if (!confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/sk/certificates/${certificateId}`);
+      toast.success('Certificate deleted successfully!');
+      fetchCertificates();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to delete certificate');
     }
   };
 
@@ -411,15 +477,35 @@ export default function SKCertificateGenerator() {
                         </TableCell>
                         <TableCell>{certificate.issuedBy}</TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-2"
-                            onClick={() => handleDownload(certificate.id)}
-                          >
-                            <Download className="h-4 w-4" />
-                            Download
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => handleDownload(certificate.id)}
+                            >
+                              <Download className="h-3 w-3" />
+                              Download
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => handleEdit(certificate)}
+                            >
+                              <Edit className="h-3 w-3" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="gap-1"
+                              onClick={() => handleDelete(certificate.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Delete
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -429,6 +515,88 @@ export default function SKCertificateGenerator() {
             )}
           </CardContent>
         </Card>
+
+        {/* Edit Certificate Dialog */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit SK Certificate</DialogTitle>
+              <DialogDescription>
+                Update the certificate information below
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-certificateNumber">Certificate Number *</Label>
+                <Input
+                  id="edit-certificateNumber"
+                  value={formData.certificateNumber}
+                  onChange={(e) => setFormData({...formData, certificateNumber: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-certificateType">Certificate Type *</Label>
+                <Select
+                  value={formData.certificateType}
+                  onValueChange={(value) => setFormData({...formData, certificateType: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select certificate type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PARTICIPATION">Participation</SelectItem>
+                    <SelectItem value="ACHIEVEMENT">Achievement</SelectItem>
+                    <SelectItem value="RECOGNITION">Recognition</SelectItem>
+                    <SelectItem value="COMPLETION">Program Completion</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-purpose">Purpose</Label>
+                <Input
+                  id="edit-purpose"
+                  value={formData.purpose}
+                  onChange={(e) => setFormData({...formData, purpose: e.target.value})}
+                  placeholder="e.g., Event participation, Youth leadership"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-achievements">Achievements</Label>
+                <textarea
+                  id="edit-achievements"
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  value={formData.achievements}
+                  onChange={(e) => setFormData({...formData, achievements: e.target.value})}
+                  placeholder="Enter participant achievements"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-recommendations">Recommendations</Label>
+                <textarea
+                  id="edit-recommendations"
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  value={formData.recommendations}
+                  onChange={(e) => setFormData({...formData, recommendations: e.target.value})}
+                  placeholder="Enter recommendations"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-4">
+                <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Update Certificate</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
