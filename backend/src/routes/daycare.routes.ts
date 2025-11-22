@@ -22,6 +22,7 @@ import {
   createProgressReport,
   getProgressReports,
   getMyChildrenProgressReports,
+  downloadProgressReport,
   // Learning Materials
   createLearningMaterial,
   getLearningMaterials,
@@ -96,6 +97,7 @@ router.patch('/attendance/:id', authenticate, updateAttendance);
 router.post('/progress-reports', authenticate, createProgressReport);
 router.get('/progress-reports', authenticate, getProgressReports);
 router.get('/progress-reports/my', authenticate, getMyChildrenProgressReports);
+router.get('/progress-reports/:id/download', authenticate, downloadProgressReport);
 
 // ========== LEARNING MATERIAL ROUTES ==========
 router.post('/learning-materials', learningMaterialUpload.single('file'), authenticate, createLearningMaterial);

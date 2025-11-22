@@ -155,6 +155,28 @@ export default function ProgressReports() {
     return (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
   };
 
+  const handleDownload = async (reportId: string, studentName: string, reportPeriod: string) => {
+    try {
+      const response = await api.get(`/daycare/progress-reports/${reportId}/download`, {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `progress-report-${studentName}-${reportPeriod}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Progress report downloaded successfully!');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download progress report');
+    }
+  };
+
   const filteredReports = filterStudent && filterStudent !== 'all'
     ? reports.filter(r => r.studentId === filterStudent)
     : reports;
@@ -311,7 +333,17 @@ export default function ProgressReports() {
 
                       <div className="flex justify-between items-center mt-4 pt-4 border-t">
                         <p className="text-xs text-gray-500">Created by: {report.createdBy}</p>
-                        <Button size="sm" variant="outline">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleDownload(
+                              report.id,
+                              `${report.student?.firstName}-${report.student?.lastName}`,
+                              report.reportPeriod
+                            )
+                          }
+                        >
                           Download PDF
                         </Button>
                       </div>

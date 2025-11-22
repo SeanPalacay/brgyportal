@@ -673,7 +673,58 @@ export const getMyChildrenProgressReports = async (req: AuthRequest, res: Respon
   }
 };
 
-// ========== LEARNING MATERIALS ==========
+export const downloadProgressReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const report = await prisma.progressReport.findUnique({
+      where: { id },
+      include: {
+        student: true
+      }
+    });
+
+    if (!report) {
+      return res.status(404).json({ error: 'Progress report not found' });
+    }
+
+    // Generate PDF using certificateGenerator
+    const { generateCertificatePDF } = require('../utils/certificateGenerator');
+
+    // Format skills scores
+    const skillsText = [
+      report.cognitiveSkills ? `Cognitive Skills: ${report.cognitiveSkills}/5` : null,
+      report.motorSkills ? `Motor Skills: ${report.motorSkills}/5` : null,
+      report.socialSkills ? `Social Skills: ${report.socialSkills}/5` : null,
+      report.languageSkills ? `Language Skills: ${report.languageSkills}/5` : null,
+      report.emotionalDevelopment ? `Emotional Development: ${report.emotionalDevelopment}/5` : null
+    ].filter(Boolean).join(' | ');
+
+    // Build comprehensive description
+    const descriptionParts = [];
+    if (skillsText) descriptionParts.push(skillsText);
+    if (report.achievements) descriptionParts.push(`<br><br><strong>Achievements:</strong> ${report.achievements}`);
+    if (report.areasForImprovement) descriptionParts.push(`<br><strong>Areas for Improvement:</strong> ${report.areasForImprovement}`);
+    if (report.behaviorNotes) descriptionParts.push(`<br><strong>Behavior Notes:</strong> ${report.behaviorNotes}`);
+
+    const pdfBuffer = await generateCertificatePDF({
+      recipientName: `${report.student.firstName} ${report.student.lastName}`,
+      certificateType: 'Progress Report',
+      issuedFor: `Academic Period: ${report.reportPeriod}`,
+      issuedDate: report.generatedAt.toISOString(),
+      issuedBy: report.createdBy,
+      purpose: descriptionParts.join(''),
+      recommendations: report.teacherComments
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="progress-report-${report.student.firstName}-${report.student.lastName}-${report.reportPeriod}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Download progress report error:', error);
+    res.status(500).json({ error: 'Failed to download progress report' });
+  }
+};
 
 // ========== LEARNING MATERIALS ==========
 
