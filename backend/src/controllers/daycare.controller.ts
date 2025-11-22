@@ -570,7 +570,12 @@ export const createProgressReport = async (req: AuthRequest, res: Response) => {
       emotionalDevelopment,
       recommendations
     } = req.body;
-    const generatedBy = req.user!.userId;
+
+    // Get the current user's full name
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user!.userId }
+    });
+    const generatedBy = currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : req.user!.userId;
 
     const report = await prisma.progressReport.create({
       data: {

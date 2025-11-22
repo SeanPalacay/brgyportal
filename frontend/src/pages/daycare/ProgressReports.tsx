@@ -36,6 +36,7 @@ export default function ProgressReports() {
   const [reports, setReports] = useState<ProgressReport[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState('');
   const [filterStudent, setFilterStudent] = useState('all');
@@ -96,8 +97,7 @@ export default function ProgressReports() {
         socialBehavior: formData.socialBehavior || null,
         physicalDevelopment: formData.physicalDevelopment || null,
         emotionalDevelopment: formData.emotionalDevelopment || null,
-        recommendations: formData.recommendations || null,
-        generatedBy: `${user.firstName} ${user.lastName}`
+        recommendations: formData.recommendations || null
       });
 
       toast.success('Progress report created successfully!');
@@ -118,6 +118,9 @@ export default function ProgressReports() {
   };
 
   const handleDownload = async (reportId: string, studentName: string, reportPeriod: string) => {
+    setDownloading(reportId);
+    toast.loading('Generating PDF...', { id: 'download-toast' });
+
     try {
       const response = await api.get(`/daycare/progress-reports/${reportId}/download`, {
         responseType: 'blob'
@@ -126,16 +129,18 @@ export default function ProgressReports() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `progress-report-${studentName}-${reportPeriod}.pdf`);
+      link.setAttribute('download', `progress-report-${studentName}-${reportPeriod.replace(/\s+/g, '-')}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      toast.success('Progress report downloaded successfully!');
+      toast.success('Progress report downloaded successfully!', { id: 'download-toast' });
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Failed to download progress report');
+      toast.error('Failed to download progress report', { id: 'download-toast' });
+    } finally {
+      setDownloading(null);
     }
   };
 
@@ -285,8 +290,9 @@ export default function ProgressReports() {
                               report.reportingPeriod
                             )
                           }
+                          disabled={downloading === report.id}
                         >
-                          Download PDF
+                          {downloading === report.id ? 'Downloading...' : 'Download PDF'}
                         </Button>
                       </div>
                     </CardContent>
