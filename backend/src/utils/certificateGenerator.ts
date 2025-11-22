@@ -17,8 +17,15 @@ interface CertificateData {
 }
 
 export const generateCertificatePDF = async (data: CertificateData): Promise<Buffer> => {
+  // Find Chrome executable path for Render deployment
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH ||
+    (process.env.NODE_ENV === 'production'
+      ? '/opt/render/.cache/puppeteer/chrome/linux-141.0.7390.122/chrome-linux64/chrome'
+      : undefined);
+
   const browser = await puppeteer.launch({
     headless: true,
+    executablePath,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
