@@ -721,6 +721,76 @@ export const downloadProgressReport = async (req: AuthRequest, res: Response) =>
   }
 };
 
+export const updateProgressReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const {
+      reportingPeriod,
+      academicPerformance,
+      socialBehavior,
+      physicalDevelopment,
+      emotionalDevelopment,
+      recommendations
+    } = req.body;
+
+    const report = await prisma.progressReport.findUnique({
+      where: { id }
+    });
+
+    if (!report) {
+      return res.status(404).json({ error: 'Progress report not found' });
+    }
+
+    const updatedReport = await prisma.progressReport.update({
+      where: { id },
+      data: {
+        reportingPeriod,
+        academicPerformance,
+        socialBehavior,
+        physicalDevelopment,
+        emotionalDevelopment,
+        recommendations
+      },
+      include: {
+        student: true
+      }
+    });
+
+    res.json({
+      message: 'Progress report updated successfully',
+      report: updatedReport
+    });
+  } catch (error) {
+    console.error('Update progress report error:', error);
+    res.status(500).json({ error: 'Failed to update progress report' });
+  }
+};
+
+export const deleteProgressReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const report = await prisma.progressReport.findUnique({
+      where: { id }
+    });
+
+    if (!report) {
+      return res.status(404).json({ error: 'Progress report not found' });
+    }
+
+    await prisma.progressReport.delete({
+      where: { id }
+    });
+
+    res.json({
+      message: 'Progress report deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete progress report error:', error);
+    res.status(500).json({ error: 'Failed to delete progress report' });
+  }
+};
+
 // ========== LEARNING MATERIALS ==========
 
 export const createLearningMaterial = async (req: AuthRequest, res: Response) => {

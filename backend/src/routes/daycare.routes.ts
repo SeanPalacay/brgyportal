@@ -23,6 +23,8 @@ import {
   getProgressReports,
   getMyChildrenProgressReports,
   downloadProgressReport,
+  updateProgressReport,
+  deleteProgressReport,
   // Learning Materials
   createLearningMaterial,
   getLearningMaterials,
@@ -98,6 +100,8 @@ router.post('/progress-reports', authenticate, createProgressReport);
 router.get('/progress-reports', authenticate, getProgressReports);
 router.get('/progress-reports/my', authenticate, getMyChildrenProgressReports);
 router.get('/progress-reports/:id/download', authenticate, downloadProgressReport);
+router.put('/progress-reports/:id', authenticate, updateProgressReport);
+router.delete('/progress-reports/:id', authenticate, deleteProgressReport);
 
 // ========== LEARNING MATERIAL ROUTES ==========
 router.post('/learning-materials', learningMaterialUpload.single('file'), authenticate, createLearningMaterial);
