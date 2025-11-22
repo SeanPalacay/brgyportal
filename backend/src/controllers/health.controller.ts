@@ -643,13 +643,24 @@ export const createCertificate = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Patient not found' });
     }
 
+    // Fetch the issuer's name
+    let issuedByName = issuedBy;
+    if (issuedBy) {
+      const issuer = await prisma.user.findUnique({
+        where: { id: issuedBy }
+      });
+      if (issuer) {
+        issuedByName = `${issuer.firstName} ${issuer.lastName}`;
+      }
+    }
+
     const certificate = await prisma.certificate.create({
       data: {
         patientId,
         certificateType,
         recipientName: `${patient.firstName} ${patient.lastName}`,
         issuedFor: purpose || certificateType,
-        issuedBy,
+        issuedBy: issuedByName,
         certificateData: {
           certificateNumber,
           purpose,

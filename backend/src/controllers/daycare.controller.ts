@@ -995,13 +995,24 @@ export const createDaycareCertificate = async (req: AuthRequest, res: Response) 
       return res.status(404).json({ error: 'Student not found' });
     }
 
+    // Fetch the issuer's name
+    let issuedByName = issuedBy;
+    if (issuedBy) {
+      const issuer = await prisma.user.findUnique({
+        where: { id: issuedBy }
+      });
+      if (issuer) {
+        issuedByName = `${issuer.firstName} ${issuer.lastName}`;
+      }
+    }
+
     const certificate = await prisma.certificate.create({
       data: {
         studentId,
         certificateType,
         recipientName: `${student.firstName} ${student.lastName}`,
         issuedFor: purpose || certificateType,
-        issuedBy,
+        issuedBy: issuedByName,
         certificateData: {
           certificateNumber,
           purpose,
