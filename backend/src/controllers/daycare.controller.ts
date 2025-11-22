@@ -693,24 +693,23 @@ export const downloadProgressReport = async (req: AuthRequest, res: Response) =>
       return res.status(404).json({ error: 'Progress report not found' });
     }
 
-    // Generate PDF using certificateGenerator
-    const { generateCertificatePDF } = require('../utils/certificateGenerator');
+    // Generate PDF using dedicated progress report generator
+    const { generateProgressReportPDF } = require('../utils/certificateGenerator');
 
-    // Build comprehensive description from report fields
-    const descriptionParts = [];
-    if (report.academicPerformance) descriptionParts.push(`<strong>Academic Performance:</strong> ${report.academicPerformance}`);
-    if (report.socialBehavior) descriptionParts.push(`<br><strong>Social Behavior:</strong> ${report.socialBehavior}`);
-    if (report.physicalDevelopment) descriptionParts.push(`<br><strong>Physical Development:</strong> ${report.physicalDevelopment}`);
-    if (report.emotionalDevelopment) descriptionParts.push(`<br><strong>Emotional Development:</strong> ${report.emotionalDevelopment}`);
-
-    const pdfBuffer = await generateCertificatePDF({
-      recipientName: `${report.student.firstName} ${report.student.lastName}`,
-      certificateType: 'Progress Report',
-      issuedFor: `Reporting Period: ${report.reportingPeriod}`,
-      issuedDate: report.generatedAt.toISOString(),
-      issuedBy: report.generatedBy,
-      purpose: descriptionParts.join(''),
-      recommendations: report.recommendations || undefined
+    const pdfBuffer = await generateProgressReportPDF({
+      studentName: `${report.student.firstName} ${report.student.lastName}`,
+      reportingPeriod: report.reportingPeriod,
+      reportDate: report.generatedAt.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      }),
+      academicPerformance: report.academicPerformance || undefined,
+      socialBehavior: report.socialBehavior || undefined,
+      physicalDevelopment: report.physicalDevelopment || undefined,
+      emotionalDevelopment: report.emotionalDevelopment || undefined,
+      recommendations: report.recommendations || undefined,
+      generatedBy: report.generatedBy
     });
 
     res.setHeader('Content-Type', 'application/pdf');

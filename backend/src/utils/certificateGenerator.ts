@@ -380,3 +380,383 @@ const generateCertificateHTML = (data: CertificateData): string => {
     </html>
   `;
 };
+
+// ========== PROGRESS REPORT PDF GENERATOR ==========
+
+interface ProgressReportData {
+  studentName: string;
+  reportingPeriod: string;
+  reportDate: string;
+  academicPerformance?: string;
+  socialBehavior?: string;
+  physicalDevelopment?: string;
+  emotionalDevelopment?: string;
+  recommendations?: string;
+  generatedBy: string;
+}
+
+export const generateProgressReportPDF = async (data: ProgressReportData): Promise<Buffer> => {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    executablePath: isProduction
+      ? await chromium.executablePath()
+      : undefined,
+    args: isProduction
+      ? chromium.args
+      : [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu'
+        ]
+  });
+  const page = await browser.newPage();
+
+  const html = generateProgressReportHTML(data);
+
+  await page.setContent(html, { waitUntil: 'networkidle0' });
+
+  const pdf = await page.pdf({
+    format: 'A4',
+    landscape: false,
+    printBackground: true,
+    margin: {
+      top: '20mm',
+      right: '15mm',
+      bottom: '20mm',
+      left: '15mm'
+    }
+  });
+
+  await browser.close();
+  return Buffer.from(pdf);
+};
+
+const generateProgressReportHTML = (data: ProgressReportData): string => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: 'Inter', sans-serif;
+          background: white;
+          color: #1a1a1a;
+          line-height: 1.6;
+        }
+
+        .report-container {
+          max-width: 210mm;
+          margin: 0 auto;
+          background: white;
+        }
+
+        .header {
+          text-align: center;
+          padding-bottom: 20px;
+          border-bottom: 3px solid hsl(105, 93%, 23%);
+          margin-bottom: 30px;
+        }
+
+        .logo-section {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 15px;
+          margin-bottom: 15px;
+        }
+
+        .logo {
+          width: 60px;
+          height: 60px;
+          background: hsl(105, 93%, 23%);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 28px;
+          font-weight: 700;
+        }
+
+        .org-name {
+          text-align: left;
+        }
+
+        .org-name h1 {
+          font-size: 24px;
+          font-weight: 700;
+          color: hsl(105, 93%, 23%);
+          margin-bottom: 2px;
+        }
+
+        .org-name p {
+          font-size: 13px;
+          color: #666;
+        }
+
+        .report-title {
+          font-size: 28px;
+          font-weight: 700;
+          color: #2d3748;
+          margin-top: 15px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .student-info {
+          background: #f7fafc;
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 25px;
+          border-left: 4px solid hsl(105, 93%, 23%);
+        }
+
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
+
+        .info-label {
+          font-weight: 600;
+          color: #4a5568;
+          font-size: 14px;
+        }
+
+        .info-value {
+          color: #2d3748;
+          font-weight: 500;
+          font-size: 14px;
+        }
+
+        .section {
+          margin-bottom: 25px;
+          page-break-inside: avoid;
+        }
+
+        .section-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: hsl(105, 93%, 23%);
+          margin-bottom: 10px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #e2e8f0;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .section-icon {
+          width: 20px;
+          height: 20px;
+          background: hsl(105, 93%, 23%);
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .section-content {
+          background: white;
+          padding: 15px;
+          border-radius: 6px;
+          border: 1px solid #e2e8f0;
+          font-size: 14px;
+          color: #4a5568;
+          line-height: 1.8;
+          min-height: 80px;
+        }
+
+        .section-content.empty {
+          color: #a0aec0;
+          font-style: italic;
+        }
+
+        .footer {
+          margin-top: 40px;
+          padding-top: 20px;
+          border-top: 2px solid #e2e8f0;
+        }
+
+        .signatures {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 40px;
+        }
+
+        .signature {
+          text-align: center;
+          flex: 1;
+        }
+
+        .signature-line {
+          width: 200px;
+          height: 1px;
+          background: #2d3748;
+          margin: 0 auto 8px;
+        }
+
+        .signature-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: #2d3748;
+        }
+
+        .signature-title {
+          font-size: 12px;
+          color: #718096;
+        }
+
+        .generated-info {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 15px;
+          border-top: 1px solid #e2e8f0;
+          font-size: 11px;
+          color: #a0aec0;
+        }
+
+        @media print {
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="report-container">
+        <!-- Header -->
+        <div class="header">
+          <div class="logo-section">
+            <div class="logo">TC</div>
+            <div class="org-name">
+              <h1>Barangay Binitayan</h1>
+              <p>Daraga, Albay, Philippines</p>
+              <p>Daycare Center</p>
+            </div>
+          </div>
+          <div class="report-title">Student Progress Report</div>
+        </div>
+
+        <!-- Student Information -->
+        <div class="student-info">
+          <div class="info-row">
+            <span class="info-label">Student Name:</span>
+            <span class="info-value">${data.studentName}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Reporting Period:</span>
+            <span class="info-value">${data.reportingPeriod}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Report Date:</span>
+            <span class="info-value">${data.reportDate}</span>
+          </div>
+        </div>
+
+        <!-- Academic Performance -->
+        ${data.academicPerformance ? `
+          <div class="section">
+            <div class="section-title">
+              <div class="section-icon">📚</div>
+              Academic Performance
+            </div>
+            <div class="section-content">
+              ${data.academicPerformance}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Social Behavior -->
+        ${data.socialBehavior ? `
+          <div class="section">
+            <div class="section-title">
+              <div class="section-icon">👥</div>
+              Social Behavior
+            </div>
+            <div class="section-content">
+              ${data.socialBehavior}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Physical Development -->
+        ${data.physicalDevelopment ? `
+          <div class="section">
+            <div class="section-title">
+              <div class="section-icon">🏃</div>
+              Physical Development
+            </div>
+            <div class="section-content">
+              ${data.physicalDevelopment}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Emotional Development -->
+        ${data.emotionalDevelopment ? `
+          <div class="section">
+            <div class="section-title">
+              <div class="section-icon">❤️</div>
+              Emotional Development
+            </div>
+            <div class="section-content">
+              ${data.emotionalDevelopment}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Recommendations -->
+        ${data.recommendations ? `
+          <div class="section">
+            <div class="section-title">
+              <div class="section-icon">💡</div>
+              Recommendations
+            </div>
+            <div class="section-content">
+              ${data.recommendations}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Footer with Signatures -->
+        <div class="footer">
+          <div class="signatures">
+            <div class="signature">
+              <div class="signature-line"></div>
+              <div class="signature-name">${data.generatedBy}</div>
+              <div class="signature-title">Daycare Teacher</div>
+            </div>
+            <div class="signature">
+              <div class="signature-line"></div>
+              <div class="signature-name">Juan Dela Cruz</div>
+              <div class="signature-title">Barangay Captain</div>
+            </div>
+          </div>
+
+          <div class="generated-info">
+            This is an official document generated by Barangay Binitayan Daycare Center.<br>
+            Generated on ${data.reportDate} | TheyCare Portal System
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
