@@ -258,17 +258,9 @@ export default function AttendanceAnalytics() {
     <DashboardLayout currentPage="/sk/attendance">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Attendance Analytics</h1>
-            <p className="text-muted-foreground mt-1">Track and analyze event participation</p>
-          </div>
-          {isStaff && selectedEvent && (
-            <Button onClick={() => setShowMarkDialog(true)} size="lg">
-              <UserCheck className="mr-2 h-4 w-4" />
-              Mark Attendance
-            </Button>
-          )}
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Attendance Analytics</h1>
+          <p className="text-muted-foreground mt-1">Track and analyze event participation</p>
         </div>
 
         {/* Overall Statistics Cards */}
@@ -386,29 +378,52 @@ export default function AttendanceAnalytics() {
         {/* Attendance Details */}
         <Card>
           <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  <CardTitle>Attendance Details</CardTitle>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    <CardTitle>Attendance Details</CardTitle>
+                  </div>
+                  <CardDescription>View detailed attendance records by event</CardDescription>
                 </div>
-                <CardDescription>View detailed attendance records by event</CardDescription>
+                <div className="flex gap-2 items-center">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={selectedEvent} onValueChange={setSelectedEvent}>
+                    <SelectTrigger className="w-[280px]">
+                      <SelectValue placeholder="Select event..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {events.map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="flex gap-2 items-center">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-                  <SelectTrigger className="w-[280px]">
-                    <SelectValue placeholder="Select event..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {events.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        {event.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+
+              {/* Mark Attendance Button - Only show for staff when event is selected */}
+              {isStaff && selectedEvent && selectedEventData && (
+                <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 text-sm">
+                    <UserCheck className="h-4 w-4 text-primary" />
+                    <span className="font-medium">
+                      Ready to mark attendance for "{selectedEventData.title}"
+                    </span>
+                    {availableUsers.length > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {availableUsers.length} pending
+                      </Badge>
+                    )}
+                  </div>
+                  <Button onClick={() => setShowMarkDialog(true)} size="default">
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    Mark Attendance
+                  </Button>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
