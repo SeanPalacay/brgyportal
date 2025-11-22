@@ -9,8 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Calendar, Clock, MapPin, Users, Eye, Trash2, Play, X, Plus, Filter, Search } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Eye, Trash2, Play, X, Plus, Filter, Search, Edit } from 'lucide-react';
 import type { Event } from '@/types/index';
 
 export default function EventManagement() {
@@ -22,6 +23,8 @@ export default function EventManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -75,6 +78,80 @@ export default function EventManagement() {
     }
 
     setFilteredEvents(filtered);
+  };
+
+  // Helper function to format time correctly (avoid timezone issues)
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    // Extract just the time part if it's a full ISO string
+    const timeMatch = timeString.match(/(\d{2}):(\d{2})/);
+    if (timeMatch) {
+      const [_, hours, minutes] = timeMatch;
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${minutes} ${ampm}`;
+    }
+    return timeString;
+  };
+
+  const handleEditClick = (event: Event) => {
+    setEditingEvent(event);
+    // Extract just the date part (YYYY-MM-DD)
+    const eventDate = new Date(event.eventDate).toISOString().split('T')[0];
+    // Extract just the time part (HH:MM)
+    const startTime = event.startTime ? event.startTime.substring(0, 5) : '';
+    const endTime = event.endTime ? event.endTime.substring(0, 5) : '';
+
+    setFormData({
+      title: event.title,
+      description: event.description,
+      eventDate: eventDate,
+      startTime: startTime,
+      endTime: endTime,
+      location: event.location,
+      category: event.category || '',
+      maxParticipants: event.maxParticipants ? String(event.maxParticipants) : ''
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editingEvent) return;
+
+    // Validate required fields
+    if (!formData.title || !formData.description || !formData.eventDate || !formData.startTime || !formData.location) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      await api.put(`/events/${editingEvent.id}`, {
+        ...formData,
+        maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants) : null,
+      });
+
+      toast.success('Event updated successfully!');
+      setIsEditDialogOpen(false);
+      setEditingEvent(null);
+      setFormData({
+        title: '',
+        description: '',
+        eventDate: '',
+        startTime: '',
+        endTime: '',
+        location: '',
+        category: '',
+        maxParticipants: ''
+      });
+      fetchEvents();
+    } catch (error: any) {
+      console.error('Update event error:', error);
+      const message = error?.response?.data?.error || 'Failed to update event';
+      toast.error(message);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent, status: 'DRAFT' | 'PUBLISHED') => {
@@ -381,8 +458,8 @@ export default function EventManagement() {
                       <div className="flex items-center gap-2 text-sm">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span>
-                          {new Date(event.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          {event.endTime && ` - ${new Date(event.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}
+                          {formatTime(event.startTime)}
+                          {event.endTime && ` - ${formatTime(event.endTime)}`}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
@@ -407,6 +484,12 @@ export default function EventManagement() {
                         <Eye className="h-3 w-3 mr-1" />
                         View
                       </Button>
+                      {(event.status === 'DRAFT' || event.status === 'PUBLISHED') && (
+                        <Button size="sm" variant="outline" onClick={() => handleEditClick(event)} className="flex-1 min-w-fit">
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                      )}
                       {event.status === 'DRAFT' && (
                         <Button size="sm" onClick={() => handlePublishEvent(event.id)} className="flex-1 min-w-fit">
                           <Play className="h-3 w-3 mr-1" />
@@ -433,6 +516,101 @@ export default function EventManagement() {
             </>
           )}
         </div>
+
+        {/* Edit Event Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Event</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Event Title *</label>
+                <Input
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Description *</label>
+                <Textarea
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Event Date *</label>
+                  <Input
+                    type="date"
+                    value={formData.eventDate}
+                    onChange={(e) => setFormData({...formData, eventDate: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Start Time *</label>
+                  <Input
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">End Time</label>
+                  <Input
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({...formData, endTime: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Location *</label>
+                  <Input
+                    value={formData.location}
+                    onChange={(e) => setFormData({...formData, location: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Category</label>
+                  <Input
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    placeholder="Sports, Cultural, Educational, etc."
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Max Participants</label>
+                  <Input
+                    type="number"
+                    value={formData.maxParticipants}
+                    onChange={(e) => setFormData({...formData, maxParticipants: e.target.value})}
+                    placeholder="Leave blank for unlimited"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1">
+                  Update Event
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

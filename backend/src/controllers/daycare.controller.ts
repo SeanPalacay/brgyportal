@@ -1088,13 +1088,19 @@ export const downloadDaycareCertificate = async (req: AuthRequest, res: Response
       studentInfo: certificate.student
     };
 
+    console.log('Generating daycare certificate PDF for:', certificate.recipientName);
     const pdfBuffer = await generateCertificatePDF(certificateData);
-    
+    console.log('Daycare PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="daycare-certificate-${certificate.recipientName.replace(/\s+/g, '-')}.pdf"`);
     res.send(pdfBuffer);
   } catch (error) {
     console.error('Download daycare certificate error:', error);
-    res.status(500).json({ error: 'Failed to generate certificate' });
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    res.status(500).json({
+      error: 'Failed to generate certificate',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };

@@ -737,13 +737,19 @@ export const downloadCertificate = async (req: AuthRequest, res: Response) => {
       patientInfo: certificate.patient
     };
 
+    console.log('Generating health certificate PDF for:', certificate.recipientName);
     const pdfBuffer = await generateCertificatePDF(certificateData);
-    
+    console.log('Health PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="certificate-${certificate.recipientName.replace(/\s+/g, '-')}.pdf"`);
     res.send(pdfBuffer);
   } catch (error) {
     console.error('Download certificate error:', error);
-    res.status(500).json({ error: 'Failed to generate certificate' });
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    res.status(500).json({
+      error: 'Failed to generate certificate',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };

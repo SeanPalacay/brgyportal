@@ -303,13 +303,19 @@ export const downloadSKCertificate = async (req: AuthRequest, res: Response) => 
       eventDate: certificate.event?.eventDate?.toISOString()
     };
 
+    console.log('Generating certificate PDF for:', certificate.recipientName);
     const pdfBuffer = await generateCertificatePDF(certificateData);
-    
+    console.log('PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="sk-certificate-${certificate.recipientName.replace(/\s+/g, '-')}.pdf"`);
     res.send(pdfBuffer);
   } catch (error) {
     console.error('Download SK certificate error:', error);
-    res.status(500).json({ error: 'Failed to generate certificate' });
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    res.status(500).json({
+      error: 'Failed to generate certificate',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
