@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { FileText, Download, Award, TrendingUp, Calendar } from 'lucide-react';
+import { FileText, Download, Award, TrendingUp, Calendar, Edit, Trash2 } from 'lucide-react';
 import { Patient } from '@/types';
 
 interface Certificate {
@@ -32,13 +32,16 @@ export default function CertificateGenerator() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingCertificate, setEditingCertificate] = useState<Certificate | null>(null);
   const [selectedPatient, setSelectedPatient] = useState('');
   const [formData, setFormData] = useState({
     certificateType: '',
     purpose: '',
     findings: '',
     recommendations: '',
-    expiryDate: ''
+    expiryDate: '',
+    certificateNumber: ''
   });
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -122,9 +125,80 @@ export default function CertificateGenerator() {
   const handleDownload = async (certificateId: string) => {
     try {
       toast.info('Generating PDF...');
-      toast.success('Download feature coming soon!');
+      const response = await api.get(`/health/certificates/${certificateId}/download`, {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `health-certificate-${certificateId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('Certificate downloaded successfully!');
     } catch (error) {
       toast.error('Failed to download certificate');
+    }
+  };
+
+  const handleEdit = (certificate: Certificate) => {
+    setEditingCertificate(certificate);
+    setFormData({
+      certificateType: certificate.certificateType,
+      purpose: certificate.purpose || '',
+      findings: certificate.findings || '',
+      recommendations: certificate.recommendations || '',
+      expiryDate: certificate.expiryDate ? new Date(certificate.expiryDate).toISOString().split('T')[0] : '',
+      certificateNumber: certificate.certificateNumber
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editingCertificate) return;
+
+    try {
+      await api.put(`/health/certificates/${editingCertificate.id}`, {
+        certificateType: formData.certificateType,
+        certificateNumber: formData.certificateNumber,
+        purpose: formData.purpose,
+        findings: formData.findings,
+        recommendations: formData.recommendations,
+        expiryDate: formData.expiryDate || null,
+        issuedBy: user.id
+      });
+
+      toast.success('Certificate updated successfully!');
+      setShowEditDialog(false);
+      setEditingCertificate(null);
+      setFormData({
+        certificateType: '',
+        purpose: '',
+        findings: '',
+        recommendations: '',
+        expiryDate: '',
+        certificateNumber: ''
+      });
+      fetchCertificates();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to update certificate');
+    }
+  };
+
+  const handleDelete = async (certificateId: string) => {
+    if (!confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/health/certificates/${certificateId}`);
+      toast.success('Certificate deleted successfully!');
+      fetchCertificates();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to delete certificate');
     }
   };
 
@@ -377,15 +451,35 @@ export default function CertificateGenerator() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-2"
-                            onClick={() => handleDownload(certificate.id)}
-                          >
-                            <Download className="h-4 w-4" />
-                            Download
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => handleDownload(certificate.id)}
+                            >
+                              <Download className="h-3 w-3" />
+                              Download
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => handleEdit(certificate)}
+                            >
+                              <Edit className="h-3 w-3" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="gap-1"
+                              onClick={() => handleDelete(certificate.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Delete
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -395,6 +489,98 @@ export default function CertificateGenerator() {
             )}
           </CardContent>
         </Card>
+
+        {/* Edit Certificate Dialog */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Certificate</DialogTitle>
+              <DialogDescription>
+                Update the certificate information below
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-certificateNumber">Certificate Number *</Label>
+                <Input
+                  id="edit-certificateNumber"
+                  value={formData.certificateNumber}
+                  onChange={(e) => setFormData({...formData, certificateNumber: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-certificateType">Certificate Type *</Label>
+                <Select
+                  value={formData.certificateType}
+                  onValueChange={(value) => setFormData({...formData, certificateType: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select certificate type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MEDICAL_CLEARANCE">Medical Clearance</SelectItem>
+                    <SelectItem value="FIT_TO_WORK">Fit to Work</SelectItem>
+                    <SelectItem value="HEALTH_PARTICIPATION">Health Program Participation</SelectItem>
+                    <SelectItem value="IMMUNIZATION">Immunization Record</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-purpose">Purpose</Label>
+                <Input
+                  id="edit-purpose"
+                  value={formData.purpose}
+                  onChange={(e) => setFormData({...formData, purpose: e.target.value})}
+                  placeholder="e.g., Employment, School enrollment, Travel"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-findings">Medical Findings</Label>
+                <textarea
+                  id="edit-findings"
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  value={formData.findings}
+                  onChange={(e) => setFormData({...formData, findings: e.target.value})}
+                  placeholder="Enter medical examination findings"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-recommendations">Recommendations</Label>
+                <textarea
+                  id="edit-recommendations"
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  value={formData.recommendations}
+                  onChange={(e) => setFormData({...formData, recommendations: e.target.value})}
+                  placeholder="Enter health recommendations or restrictions"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-expiryDate">Expiry Date (Optional)</Label>
+                <Input
+                  id="edit-expiryDate"
+                  type="date"
+                  value={formData.expiryDate}
+                  onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-4">
+                <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Update Certificate</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
