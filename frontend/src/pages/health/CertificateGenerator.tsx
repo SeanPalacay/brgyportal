@@ -113,7 +113,8 @@ export default function CertificateGenerator() {
         purpose: '',
         findings: '',
         recommendations: '',
-        expiryDate: ''
+        expiryDate: '',
+        certificateNumber: ''
       });
       setSelectedPatient('');
       fetchCertificates();

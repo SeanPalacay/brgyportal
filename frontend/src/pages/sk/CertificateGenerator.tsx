@@ -143,7 +143,10 @@ export default function SKCertificateGenerator() {
         certificateType: '',
         participationType: '',
         achievements: '',
-        eventDate: ''
+        eventDate: '',
+        certificateNumber: '',
+        purpose: '',
+        recommendations: ''
       });
       setSelectedEvent('');
       setSelectedUser('');

@@ -117,7 +117,10 @@ export default function DaycareCertificateGenerator() {
         certificateType: '',
         program: '',
         achievements: '',
-        completionDate: ''
+        completionDate: '',
+        certificateNumber: '',
+        purpose: '',
+        recommendations: ''
       });
       setSelectedStudent('');
       fetchCertificates();
