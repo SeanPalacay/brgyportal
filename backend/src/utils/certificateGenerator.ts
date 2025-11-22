@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import chromium from '@sparticuz/chromium';
 
 interface CertificateData {
   recipientName: string;
@@ -17,25 +18,22 @@ interface CertificateData {
 }
 
 export const generateCertificatePDF = async (data: CertificateData): Promise<Buffer> => {
-  // Find Chrome executable path for Render deployment
-  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH ||
-    (process.env.NODE_ENV === 'production'
-      ? '/opt/render/.cache/puppeteer/chrome/linux-141.0.7390.122/chrome-linux64/chrome'
-      : undefined);
+  // Use @sparticuz/chromium for serverless environments (Render, AWS Lambda, etc.)
+  const isProduction = process.env.NODE_ENV === 'production';
 
   const browser = await puppeteer.launch({
     headless: true,
-    executablePath,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process',
-      '--disable-gpu'
-    ]
+    executablePath: isProduction
+      ? await chromium.executablePath()
+      : undefined,
+    args: isProduction
+      ? chromium.args
+      : [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu'
+        ]
   });
   const page = await browser.newPage();
   
