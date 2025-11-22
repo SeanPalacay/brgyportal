@@ -22,18 +22,14 @@ interface ProgressReport {
   id: string;
   studentId: string;
   student?: Student;
-  reportPeriod: string;
-  reportDate: string;
-  cognitiveSkills?: number;
-  motorSkills?: number;
-  socialSkills?: number;
-  languageSkills?: number;
-  emotionalDevelopment?: number;
-  behaviorNotes?: string;
-  achievements?: string;
-  areasForImprovement?: string;
-  teacherComments?: string;
-  createdBy: string;
+  reportingPeriod: string;
+  academicPerformance?: string;
+  socialBehavior?: string;
+  physicalDevelopment?: string;
+  emotionalDevelopment?: string;
+  recommendations?: string;
+  generatedBy: string;
+  generatedAt: string;
 }
 
 export default function ProgressReports() {
@@ -44,16 +40,12 @@ export default function ProgressReports() {
   const [selectedStudent, setSelectedStudent] = useState('');
   const [filterStudent, setFilterStudent] = useState('all');
   const [formData, setFormData] = useState({
-    reportPeriod: '',
-    cognitiveSkills: '',
-    motorSkills: '',
-    socialSkills: '',
-    languageSkills: '',
+    reportingPeriod: '',
+    academicPerformance: '',
+    socialBehavior: '',
+    physicalDevelopment: '',
     emotionalDevelopment: '',
-    behaviorNotes: '',
-    achievements: '',
-    areasForImprovement: '',
-    teacherComments: ''
+    recommendations: ''
   });
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -91,68 +83,38 @@ export default function ProgressReports() {
       return;
     }
 
-    if (!formData.reportPeriod) {
-      toast.error('Please enter the report period');
+    if (!formData.reportingPeriod) {
+      toast.error('Please enter the reporting period');
       return;
     }
 
     try {
       await api.post('/daycare/progress-reports', {
         studentId: selectedStudent,
-        reportPeriod: formData.reportPeriod,
-        cognitiveSkills: formData.cognitiveSkills ? parseInt(formData.cognitiveSkills) : null,
-        motorSkills: formData.motorSkills ? parseInt(formData.motorSkills) : null,
-        socialSkills: formData.socialSkills ? parseInt(formData.socialSkills) : null,
-        languageSkills: formData.languageSkills ? parseInt(formData.languageSkills) : null,
-        emotionalDevelopment: formData.emotionalDevelopment ? parseInt(formData.emotionalDevelopment) : null,
-        behaviorNotes: formData.behaviorNotes,
-        achievements: formData.achievements,
-        areasForImprovement: formData.areasForImprovement,
-        teacherComments: formData.teacherComments,
-        createdBy: `${user.firstName} ${user.lastName}`
+        reportingPeriod: formData.reportingPeriod,
+        academicPerformance: formData.academicPerformance || null,
+        socialBehavior: formData.socialBehavior || null,
+        physicalDevelopment: formData.physicalDevelopment || null,
+        emotionalDevelopment: formData.emotionalDevelopment || null,
+        recommendations: formData.recommendations || null,
+        generatedBy: `${user.firstName} ${user.lastName}`
       });
 
       toast.success('Progress report created successfully!');
       setShowDialog(false);
       setFormData({
-        reportPeriod: '',
-        cognitiveSkills: '',
-        motorSkills: '',
-        socialSkills: '',
-        languageSkills: '',
+        reportingPeriod: '',
+        academicPerformance: '',
+        socialBehavior: '',
+        physicalDevelopment: '',
         emotionalDevelopment: '',
-        behaviorNotes: '',
-        achievements: '',
-        areasForImprovement: '',
-        teacherComments: ''
+        recommendations: ''
       });
       setSelectedStudent('');
       fetchReports();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create progress report');
     }
-  };
-
-  const getSkillBadge = (score?: number) => {
-    if (!score) return <Badge variant="outline">Not Rated</Badge>;
-
-    if (score >= 4) return <Badge variant="default">Excellent</Badge>;
-    if (score >= 3) return <Badge variant="secondary">Good</Badge>;
-    if (score >= 2) return <Badge variant="outline">Developing</Badge>;
-    return <Badge variant="destructive">Needs Support</Badge>;
-  };
-
-  const calculateAverageScore = (report: ProgressReport) => {
-    const scores = Object.values({
-      cognitive: report.cognitiveSkills,
-      motor: report.motorSkills,
-      social: report.socialSkills,
-      language: report.languageSkills,
-      emotional: report.emotionalDevelopment
-    }).filter(s => s !== null && s !== undefined) as number[];
-
-    if (scores.length === 0) return null;
-    return (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
   };
 
   const handleDownload = async (reportId: string, studentName: string, reportPeriod: string) => {
@@ -210,7 +172,7 @@ export default function ProgressReports() {
             <CardContent>
               <p className="text-2xl font-bold">
                 {reports.filter(r => {
-                  const reportDate = new Date(r.reportDate);
+                  const reportDate = new Date(r.generatedAt);
                   const now = new Date();
                   const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
                   return reportDate >= quarterStart;
@@ -271,68 +233,48 @@ export default function ProgressReports() {
                             {report.student?.firstName} {report.student?.lastName}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            Period: {report.reportPeriod} | Date: {new Date(report.reportDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600">Average Score</p>
-                          <p className="text-2xl font-bold">
-                            {calculateAverageScore(report) || 'N/A'}
+                            Period: {report.reportingPeriod} | Date: {new Date(report.generatedAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-5 gap-4 mb-4">
-                        <div>
-                          <p className="text-xs text-gray-600 mb-1">Cognitive</p>
-                          {getSkillBadge(report.cognitiveSkills)}
-                          <p className="text-sm font-medium mt-1">{report.cognitiveSkills || '-'}/5</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-600 mb-1">Motor Skills</p>
-                          {getSkillBadge(report.motorSkills)}
-                          <p className="text-sm font-medium mt-1">{report.motorSkills || '-'}/5</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-600 mb-1">Social</p>
-                          {getSkillBadge(report.socialSkills)}
-                          <p className="text-sm font-medium mt-1">{report.socialSkills || '-'}/5</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-600 mb-1">Language</p>
-                          {getSkillBadge(report.languageSkills)}
-                          <p className="text-sm font-medium mt-1">{report.languageSkills || '-'}/5</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-600 mb-1">Emotional</p>
-                          {getSkillBadge(report.emotionalDevelopment)}
-                          <p className="text-sm font-medium mt-1">{report.emotionalDevelopment || '-'}/5</p>
-                        </div>
-                      </div>
-
-                      {report.achievements && (
-                        <div className="mb-2">
-                          <p className="text-sm font-medium">Achievements:</p>
-                          <p className="text-sm text-gray-700">{report.achievements}</p>
+                      {report.academicPerformance && (
+                        <div className="mb-3">
+                          <p className="text-sm font-medium">Academic Performance:</p>
+                          <p className="text-sm text-gray-700">{report.academicPerformance}</p>
                         </div>
                       )}
 
-                      {report.areasForImprovement && (
-                        <div className="mb-2">
-                          <p className="text-sm font-medium">Areas for Improvement:</p>
-                          <p className="text-sm text-gray-700">{report.areasForImprovement}</p>
+                      {report.socialBehavior && (
+                        <div className="mb-3">
+                          <p className="text-sm font-medium">Social Behavior:</p>
+                          <p className="text-sm text-gray-700">{report.socialBehavior}</p>
                         </div>
                       )}
 
-                      {report.teacherComments && (
-                        <div className="mb-2">
-                          <p className="text-sm font-medium">Teacher Comments:</p>
-                          <p className="text-sm text-gray-700">{report.teacherComments}</p>
+                      {report.physicalDevelopment && (
+                        <div className="mb-3">
+                          <p className="text-sm font-medium">Physical Development:</p>
+                          <p className="text-sm text-gray-700">{report.physicalDevelopment}</p>
+                        </div>
+                      )}
+
+                      {report.emotionalDevelopment && (
+                        <div className="mb-3">
+                          <p className="text-sm font-medium">Emotional Development:</p>
+                          <p className="text-sm text-gray-700">{report.emotionalDevelopment}</p>
+                        </div>
+                      )}
+
+                      {report.recommendations && (
+                        <div className="mb-3">
+                          <p className="text-sm font-medium">Recommendations:</p>
+                          <p className="text-sm text-gray-700">{report.recommendations}</p>
                         </div>
                       )}
 
                       <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                        <p className="text-xs text-gray-500">Created by: {report.createdBy}</p>
+                        <p className="text-xs text-gray-500">Generated by: {report.generatedBy}</p>
                         <Button
                           size="sm"
                           variant="outline"
@@ -340,7 +282,7 @@ export default function ProgressReports() {
                             handleDownload(
                               report.id,
                               `${report.student?.firstName}-${report.student?.lastName}`,
-                              report.reportPeriod
+                              report.reportingPeriod
                             )
                           }
                         >
@@ -378,119 +320,68 @@ export default function ProgressReports() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Report Period *</label>
+                  <label className="text-sm font-medium">Reporting Period *</label>
                   <Input
-                    value={formData.reportPeriod}
-                    onChange={(e) => setFormData({...formData, reportPeriod: e.target.value})}
-                    placeholder="e.g., Q1 2025, Jan-Mar 2025"
+                    value={formData.reportingPeriod}
+                    onChange={(e) => setFormData({...formData, reportingPeriod: e.target.value})}
+                    placeholder="e.g., Q1 2025, January-March 2025"
                     required
                   />
                 </div>
               </div>
 
-              <div className="border-t pt-4">
-                <h3 className="font-medium mb-3">Development Assessment (Rate 1-5)</h3>
-                <p className="text-xs text-gray-500 mb-3">1 = Needs Support, 2 = Developing, 3 = Good, 4 = Excellent, 5 = Outstanding</p>
-                <div className="grid grid-cols-5 gap-4">
-                  <div>
-                    <label className="text-sm">Cognitive Skills</label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={formData.cognitiveSkills}
-                      onChange={(e) => setFormData({...formData, cognitiveSkills: e.target.value})}
-                      placeholder="1-5"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm">Motor Skills</label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={formData.motorSkills}
-                      onChange={(e) => setFormData({...formData, motorSkills: e.target.value})}
-                      placeholder="1-5"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm">Social Skills</label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={formData.socialSkills}
-                      onChange={(e) => setFormData({...formData, socialSkills: e.target.value})}
-                      placeholder="1-5"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm">Language Skills</label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={formData.languageSkills}
-                      onChange={(e) => setFormData({...formData, languageSkills: e.target.value})}
-                      placeholder="1-5"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm">Emotional Dev.</label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={formData.emotionalDevelopment}
-                      onChange={(e) => setFormData({...formData, emotionalDevelopment: e.target.value})}
-                      placeholder="1-5"
-                    />
-                  </div>
-                </div>
-              </div>
-
               <div>
-                <label className="text-sm font-medium">Behavior Notes</label>
-                <textarea
-                  className="w-full p-2 border rounded-md"
-                  rows={2}
-                  value={formData.behaviorNotes}
-                  onChange={(e) => setFormData({...formData, behaviorNotes: e.target.value})}
-                  placeholder="Observations about the child's behavior"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Achievements</label>
-                <textarea
-                  className="w-full p-2 border rounded-md"
-                  rows={2}
-                  value={formData.achievements}
-                  onChange={(e) => setFormData({...formData, achievements: e.target.value})}
-                  placeholder="Notable achievements during this period"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Areas for Improvement</label>
-                <textarea
-                  className="w-full p-2 border rounded-md"
-                  rows={2}
-                  value={formData.areasForImprovement}
-                  onChange={(e) => setFormData({...formData, areasForImprovement: e.target.value})}
-                  placeholder="Skills or behaviors to work on"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Teacher Comments</label>
+                <label className="text-sm font-medium">Academic Performance</label>
                 <textarea
                   className="w-full p-2 border rounded-md"
                   rows={3}
-                  value={formData.teacherComments}
-                  onChange={(e) => setFormData({...formData, teacherComments: e.target.value})}
-                  placeholder="Additional comments or recommendations for parents"
+                  value={formData.academicPerformance}
+                  onChange={(e) => setFormData({...formData, academicPerformance: e.target.value})}
+                  placeholder="Describe the student's academic progress, learning achievements, and areas of strength..."
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Social Behavior</label>
+                <textarea
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  value={formData.socialBehavior}
+                  onChange={(e) => setFormData({...formData, socialBehavior: e.target.value})}
+                  placeholder="How the student interacts with peers and teachers, cooperation, sharing..."
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Physical Development</label>
+                <textarea
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  value={formData.physicalDevelopment}
+                  onChange={(e) => setFormData({...formData, physicalDevelopment: e.target.value})}
+                  placeholder="Motor skills, coordination, physical activities participation..."
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Emotional Development</label>
+                <textarea
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  value={formData.emotionalDevelopment}
+                  onChange={(e) => setFormData({...formData, emotionalDevelopment: e.target.value})}
+                  placeholder="Self-regulation, emotional expression, confidence, resilience..."
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Recommendations</label>
+                <textarea
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  value={formData.recommendations}
+                  onChange={(e) => setFormData({...formData, recommendations: e.target.value})}
+                  placeholder="Recommendations for parents and areas to focus on at home..."
                 />
               </div>
 

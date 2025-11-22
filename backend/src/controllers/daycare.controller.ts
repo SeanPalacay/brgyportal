@@ -691,34 +691,25 @@ export const downloadProgressReport = async (req: AuthRequest, res: Response) =>
     // Generate PDF using certificateGenerator
     const { generateCertificatePDF } = require('../utils/certificateGenerator');
 
-    // Format skills scores
-    const skillsText = [
-      report.cognitiveSkills ? `Cognitive Skills: ${report.cognitiveSkills}/5` : null,
-      report.motorSkills ? `Motor Skills: ${report.motorSkills}/5` : null,
-      report.socialSkills ? `Social Skills: ${report.socialSkills}/5` : null,
-      report.languageSkills ? `Language Skills: ${report.languageSkills}/5` : null,
-      report.emotionalDevelopment ? `Emotional Development: ${report.emotionalDevelopment}/5` : null
-    ].filter(Boolean).join(' | ');
-
-    // Build comprehensive description
+    // Build comprehensive description from report fields
     const descriptionParts = [];
-    if (skillsText) descriptionParts.push(skillsText);
-    if (report.achievements) descriptionParts.push(`<br><br><strong>Achievements:</strong> ${report.achievements}`);
-    if (report.areasForImprovement) descriptionParts.push(`<br><strong>Areas for Improvement:</strong> ${report.areasForImprovement}`);
-    if (report.behaviorNotes) descriptionParts.push(`<br><strong>Behavior Notes:</strong> ${report.behaviorNotes}`);
+    if (report.academicPerformance) descriptionParts.push(`<strong>Academic Performance:</strong> ${report.academicPerformance}`);
+    if (report.socialBehavior) descriptionParts.push(`<br><strong>Social Behavior:</strong> ${report.socialBehavior}`);
+    if (report.physicalDevelopment) descriptionParts.push(`<br><strong>Physical Development:</strong> ${report.physicalDevelopment}`);
+    if (report.emotionalDevelopment) descriptionParts.push(`<br><strong>Emotional Development:</strong> ${report.emotionalDevelopment}`);
 
     const pdfBuffer = await generateCertificatePDF({
       recipientName: `${report.student.firstName} ${report.student.lastName}`,
       certificateType: 'Progress Report',
-      issuedFor: `Academic Period: ${report.reportPeriod}`,
+      issuedFor: `Reporting Period: ${report.reportingPeriod}`,
       issuedDate: report.generatedAt.toISOString(),
-      issuedBy: report.createdBy,
+      issuedBy: report.generatedBy,
       purpose: descriptionParts.join(''),
-      recommendations: report.teacherComments
+      recommendations: report.recommendations || undefined
     });
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="progress-report-${report.student.firstName}-${report.student.lastName}-${report.reportPeriod}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="progress-report-${report.student.firstName}-${report.student.lastName}-${report.reportingPeriod.replace(/\s+/g, '-')}.pdf"`);
     res.send(pdfBuffer);
   } catch (error) {
     console.error('Download progress report error:', error);
