@@ -39,6 +39,21 @@ export default function PublicEvents() {
     }
   };
 
+  // Helper function to format time correctly (avoid timezone issues)
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    // Extract just the time part if it's a full ISO string
+    const timeMatch = timeString.match(/(\d{2}):(\d{2})/);
+    if (timeMatch) {
+      const [_, hours, minutes] = timeMatch;
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${minutes} ${ampm}`;
+    }
+    return timeString;
+  };
+
   const fetchUserRegistrations = async () => {
     try {
       const response = await api.get('/events/registrations/my');
@@ -152,7 +167,10 @@ export default function PublicEvents() {
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Clock className="h-4 w-4 text-primary" />
-                          <span>{new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>
+                            {formatTime(event.startTime)}
+                            {event.endTime && ` - ${formatTime(event.endTime)}`}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4 text-primary" />
@@ -228,8 +246,8 @@ export default function PublicEvents() {
                     <div>
                       <p className="font-medium">Time</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(selectedEvent.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        {selectedEvent.endTime && ` - ${new Date(selectedEvent.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}
+                        {formatTime(selectedEvent.startTime)}
+                        {selectedEvent.endTime && ` - ${formatTime(selectedEvent.endTime)}`}
                       </p>
                     </div>
                   </div>

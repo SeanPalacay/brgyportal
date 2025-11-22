@@ -17,10 +17,13 @@ interface Event {
   title: string;
   description?: string;
   eventDate: string;
+  startTime: string;
+  endTime?: string;
   location?: string;
   capacity?: number;
   registeredCount?: number;
   status?: string;
+  maxParticipants?: number;
 }
 
 interface Registration {
@@ -55,6 +58,21 @@ export default function EventRegistration() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userRoles = user.roles || [user.role]; // Support both single role and multi-role
   const isStaff = userRoles.some((role: string) => ['SK_OFFICER', 'SK_CHAIRMAN', 'SYSTEM_ADMIN'].includes(role));
+
+  // Helper function to format time correctly (avoid timezone issues)
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    // Extract just the time part if it's a full ISO string
+    const timeMatch = timeString.match(/(\d{2}):(\d{2})/);
+    if (timeMatch) {
+      const [_, hours, minutes] = timeMatch;
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${minutes} ${ampm}`;
+    }
+    return timeString;
+  };
 
   useEffect(() => {
     fetchEvents();
@@ -215,7 +233,7 @@ export default function EventRegistration() {
   };
 
   const isEventFull = (event: Event) => {
-    return event.capacity && event.registeredCount! >= event.capacity;
+    return event.maxParticipants && event.registeredCount! >= event.maxParticipants;
   };
 
   const isEventPast = (eventDate: string) => {
@@ -336,16 +354,20 @@ export default function EventRegistration() {
                           {isFull && !isPast && !isCancelled && <Badge variant="destructive">Full</Badge>}
                         </div>
                         <p className="text-sm text-gray-600 mb-2">
-                          {new Date(event.eventDate).toLocaleString()}
+                          📅 {new Date(event.eventDate).toLocaleDateString()}
+                        </p>
+                        <p className="text-sm text-gray-600 mb-2">
+                          🕒 {formatTime(event.startTime)}
+                          {event.endTime && ` - ${formatTime(event.endTime)}`}
                         </p>
                         {event.location && (
                           <p className="text-sm text-gray-600 mb-2">
                             📍 {event.location}
                           </p>
                         )}
-                        {event.capacity && (
+                        {event.maxParticipants && (
                           <p className="text-sm text-gray-600 mb-3">
-                            Capacity: {event.registeredCount}/{event.capacity}
+                            Capacity: {event.registeredCount}/{event.maxParticipants}
                           </p>
                         )}
                         {event.description && (
@@ -534,7 +556,11 @@ export default function EventRegistration() {
               <div className="mb-4">
                 <h3 className="font-semibold text-lg">{selectedEvent.title}</h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  {new Date(selectedEvent.eventDate).toLocaleString()}
+                  📅 {new Date(selectedEvent.eventDate).toLocaleDateString()}
+                </p>
+                <p className="text-sm text-gray-600">
+                  🕒 {formatTime(selectedEvent.startTime)}
+                  {selectedEvent.endTime && ` - ${formatTime(selectedEvent.endTime)}`}
                 </p>
                 {selectedEvent.location && (
                   <p className="text-sm text-gray-600">📍 {selectedEvent.location}</p>
