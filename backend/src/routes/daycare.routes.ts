@@ -34,7 +34,9 @@ import {
   // Certificate Management
   createDaycareCertificate,
   getDaycareCertificates,
-  downloadDaycareCertificate
+  downloadDaycareCertificate,
+  updateDaycareCertificate,
+  deleteDaycareCertificate
 } from '../controllers/daycare.controller';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 
@@ -105,6 +107,8 @@ router.delete('/learning-materials/:id', authenticate, deleteLearningMaterial);
 // ========== CERTIFICATE ROUTES ==========
 router.post('/certificates', authenticate, createDaycareCertificate);
 router.get('/certificates', authenticate, getDaycareCertificates);
+router.put('/certificates/:id', authenticate, updateDaycareCertificate);
+router.delete('/certificates/:id', authenticate, deleteDaycareCertificate);
 router.get('/certificates/:id/download', authenticate, downloadDaycareCertificate);
 
 export default router;

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getSKAnalytics, createSKCertificate, getSKCertificates, downloadSKCertificate } from '../controllers/sk.controller';
+import { getSKAnalytics, createSKCertificate, getSKCertificates, downloadSKCertificate, updateSKCertificate, deleteSKCertificate } from '../controllers/sk.controller';
 import { 
   createEvent,
   getAllEvents,
@@ -26,6 +26,8 @@ router.delete('/events/:id', authenticate, deleteEvent);
 // ========== CERTIFICATE ROUTES ==========
 router.post('/certificates', authenticate, createSKCertificate);
 router.get('/certificates', authenticate, getSKCertificates);
+router.put('/certificates/:id', authenticate, updateSKCertificate);
+router.delete('/certificates/:id', authenticate, deleteSKCertificate);
 router.get('/certificates/:id/download', authenticate, downloadSKCertificate);
 
 export default router;

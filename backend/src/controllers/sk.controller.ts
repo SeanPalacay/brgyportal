@@ -330,3 +330,86 @@ export const downloadSKCertificate = async (req: AuthRequest, res: Response) => 
     });
   }
 };
+
+export const updateSKCertificate = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const {
+      certificateType,
+      certificateNumber,
+      purpose,
+      achievements,
+      recommendations,
+      expiryDate,
+      issuedBy
+    } = req.body;
+
+    const certificate = await prisma.certificate.findUnique({
+      where: { id }
+    });
+
+    if (!certificate) {
+      return res.status(404).json({ error: 'Certificate not found' });
+    }
+
+    // Fetch the issuer's name if issuedBy is provided
+    let issuedByName = issuedBy;
+    if (issuedBy) {
+      const issuer = await prisma.user.findUnique({
+        where: { id: issuedBy }
+      });
+      if (issuer) {
+        issuedByName = `${issuer.firstName} ${issuer.lastName}`;
+      }
+    }
+
+    const data = certificate.certificateData as any;
+    const updatedCertificate = await prisma.certificate.update({
+      where: { id },
+      data: {
+        certificateType: certificateType || certificate.certificateType,
+        issuedFor: purpose || certificate.issuedFor,
+        issuedBy: issuedByName || certificate.issuedBy,
+        certificateData: {
+          ...data,
+          certificateNumber,
+          purpose,
+          achievements,
+          recommendations,
+          expiryDate: expiryDate ? new Date(expiryDate) : null
+        }
+      },
+      include: {
+        event: true
+      }
+    });
+
+    res.json({ message: 'Certificate updated successfully', certificate: updatedCertificate });
+  } catch (error) {
+    console.error('Update SK certificate error:', error);
+    res.status(500).json({ error: 'Failed to update certificate' });
+  }
+};
+
+export const deleteSKCertificate = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const certificate = await prisma.certificate.findUnique({
+      where: { id }
+    });
+
+    if (!certificate) {
+      return res.status(404).json({ error: 'Certificate not found' });
+    }
+
+    await prisma.certificate.delete({
+      where: { id }
+    });
+
+    res.json({ message: 'Certificate deleted successfully' });
+  } catch (error) {
+    console.error('Delete SK certificate error:', error);
+    res.status(500).json({ error: 'Failed to delete certificate' });
+  }
+};

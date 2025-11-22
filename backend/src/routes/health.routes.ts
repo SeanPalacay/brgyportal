@@ -21,6 +21,8 @@ import {
   getCertificates,
   createCertificate,
   downloadCertificate,
+  updateCertificate,
+  deleteCertificate,
   getVaccinations,
   createVaccination,
   getUpcomingVaccinations,
@@ -68,6 +70,8 @@ router.get('/upcoming-vaccinations', authenticate, getUpcomingVaccinations);
 // ========== CERTIFICATES ==========
 router.get('/certificates', authenticate, getCertificates);
 router.post('/certificates', authenticate, createCertificate);
+router.put('/certificates/:id', authenticate, updateCertificate);
+router.delete('/certificates/:id', authenticate, deleteCertificate);
 router.get('/certificates/:id/download', authenticate, downloadCertificate);
 
 export default router;
