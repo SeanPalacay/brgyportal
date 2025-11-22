@@ -1,21 +1,53 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import {
+  Calendar,
+  Users,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  TrendingUp,
+  UserCheck,
+  Filter,
+  BarChart3,
+  AlertCircle
+} from 'lucide-react';
 
 interface Event {
   id: string;
   title: string;
   description?: string;
   eventDate: string;
+  startTime: string;
+  endTime?: string;
   location?: string;
-  capacity?: number;
+  maxParticipants?: number;
+  status?: string;
+}
+
+interface Registration {
+  id: string;
+  eventId: string;
+  userId: string;
+  status: string;
+  registeredAt: string;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    contactNumber?: string;
+  };
 }
 
 interface AttendanceRecord {
@@ -23,12 +55,14 @@ interface AttendanceRecord {
   eventId: string;
   event?: Event;
   userId: string;
-  userName: string;
-  email: string;
-  checkInTime: string;
-  checkOutTime?: string;
-  attendanceStatus: string;
-  notes?: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  attendedAt: string;
+  remarks?: string;
 }
 
 interface EventStats {
@@ -37,9 +71,6 @@ interface EventStats {
   eventDate: string;
   totalRegistrations: number;
   totalAttendees: number;
-  present: number;
-  absent: number;
-  late: number;
   attendanceRate: number;
 }
 
@@ -50,15 +81,18 @@ export default function AttendanceAnalytics() {
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [showMarkDialog, setShowMarkDialog] = useState(false);
-  const [registeredUsers, setRegisteredUsers] = useState<any[]>([]);
+  const [registeredUsers, setRegisteredUsers] = useState<Registration[]>([]);
   const [markFormData, setMarkFormData] = useState({
     userId: '',
-    status: 'PRESENT',
-    notes: ''
+    remarks: ''
   });
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const isStaff = ['SK_OFFICER', 'SK_CHAIRMAN', 'SYSTEM_ADMIN'].includes(user.role);
+  const userRoles = user.roles || [user.role];
+  const isStaff = userRoles.some((role: any) => {
+    const roleName = typeof role === 'string' ? role : role.name;
+    return ['SK_OFFICER', 'SK_CHAIRMAN', 'SYSTEM_ADMIN', 'BARANGAY_CAPTAIN'].includes(roleName);
+  });
 
   useEffect(() => {
     fetchEvents();
@@ -75,11 +109,13 @@ export default function AttendanceAnalytics() {
   const fetchEvents = async () => {
     try {
       const response = await api.get('/events');
-      setEvents(response.data.events || []);
-      if (response.data.events?.length > 0) {
-        setSelectedEvent(response.data.events[0].id);
+      const eventsList = response.data.events || [];
+      setEvents(eventsList);
+      if (eventsList.length > 0) {
+        setSelectedEvent(eventsList[0].id);
       }
     } catch (error) {
+      console.error('Failed to fetch events:', error);
       toast.error('Failed to fetch events');
     } finally {
       setLoading(false);
@@ -91,6 +127,7 @@ export default function AttendanceAnalytics() {
       const response = await api.get(`/events/${eventId}/attendance`);
       setAttendanceRecords(response.data.attendance || []);
     } catch (error) {
+      console.error('Failed to fetch attendance:', error);
       toast.error('Failed to fetch attendance');
     }
   };
@@ -99,10 +136,12 @@ export default function AttendanceAnalytics() {
     try {
       const response = await api.get(`/events/${eventId}/registrations`);
       const approvedUsers = response.data.registrations?.filter(
-        (r: any) => r.status === 'APPROVED'
+        (r: Registration) => r.status === 'APPROVED'
       ) || [];
+      console.log('Approved registrations:', approvedUsers);
       setRegisteredUsers(approvedUsers);
     } catch (error) {
+      console.error('Failed to fetch registrations:', error);
       toast.error('Failed to fetch registrations');
     }
   };
@@ -123,22 +162,17 @@ export default function AttendanceAnalytics() {
           const attendance = attRes.data.attendance || [];
 
           const totalRegistrations = registrations.filter(
-            (r: any) => r.status === 'APPROVED'
+            (r: Registration) => r.status === 'APPROVED'
           ).length;
-          const present = attendance.filter((a: AttendanceRecord) => a.attendanceStatus === 'PRESENT').length;
-          const absent = attendance.filter((a: AttendanceRecord) => a.attendanceStatus === 'ABSENT').length;
-          const late = attendance.filter((a: AttendanceRecord) => a.attendanceStatus === 'LATE').length;
+          const totalAttendees = attendance.length;
 
           return {
             eventId: event.id,
             eventTitle: event.title,
             eventDate: event.eventDate,
             totalRegistrations,
-            totalAttendees: attendance.length,
-            present,
-            absent,
-            late,
-            attendanceRate: totalRegistrations > 0 ? (present / totalRegistrations) * 100 : 0
+            totalAttendees,
+            attendanceRate: totalRegistrations > 0 ? (totalAttendees / totalRegistrations) * 100 : 0
           };
         } catch {
           return null;
@@ -148,6 +182,7 @@ export default function AttendanceAnalytics() {
       const stats = (await Promise.all(statsPromises)).filter(Boolean) as EventStats[];
       setEventStats(stats);
     } catch (error) {
+      console.error('Failed to fetch event statistics:', error);
       toast.error('Failed to fetch event statistics');
     }
   };
@@ -156,7 +191,7 @@ export default function AttendanceAnalytics() {
     e.preventDefault();
 
     if (!markFormData.userId) {
-      toast.error('Please select a user');
+      toast.error('Please select a participant');
       return;
     }
 
@@ -164,46 +199,47 @@ export default function AttendanceAnalytics() {
       await api.post('/events/attendance', {
         eventId: selectedEvent,
         userId: markFormData.userId,
-        attendanceStatus: markFormData.status,
-        checkInTime: new Date().toISOString(),
-        notes: markFormData.notes
+        remarks: markFormData.remarks
       });
 
       toast.success('Attendance marked successfully!');
       setShowMarkDialog(false);
       setMarkFormData({
         userId: '',
-        status: 'PRESENT',
-        notes: ''
+        remarks: ''
       });
       fetchAttendance(selectedEvent);
       fetchEventStats();
     } catch (error: any) {
+      console.error('Mark attendance error:', error.response?.data);
       toast.error(error.response?.data?.error || 'Failed to mark attendance');
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string }> = {
-      PRESENT: { variant: 'default', label: 'Present' },
-      ABSENT: { variant: 'destructive', label: 'Absent' },
-      LATE: { variant: 'outline', label: 'Late' }
-    };
-
-    const config = statusConfig[status] || statusConfig.PRESENT;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+  const getAttendanceRateBadge = (rate: number) => {
+    if (rate >= 80) return <Badge className="bg-green-500">{rate.toFixed(1)}%</Badge>;
+    if (rate >= 60) return <Badge className="bg-yellow-500">{rate.toFixed(1)}%</Badge>;
+    if (rate >= 40) return <Badge className="bg-orange-500">{rate.toFixed(1)}%</Badge>;
+    return <Badge variant="destructive">{rate.toFixed(1)}%</Badge>;
   };
 
-  const getAttendanceRateBadge = (rate: number) => {
-    if (rate >= 80) return <Badge variant="default">{rate.toFixed(1)}%</Badge>;
-    if (rate >= 60) return <Badge variant="secondary">{rate.toFixed(1)}%</Badge>;
-    if (rate >= 40) return <Badge variant="outline">{rate.toFixed(1)}%</Badge>;
-    return <Badge variant="destructive">{rate.toFixed(1)}%</Badge>;
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    const timeMatch = timeString.match(/(\d{2}):(\d{2})/);
+    if (timeMatch) {
+      const [_, hours, minutes] = timeMatch;
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${minutes} ${ampm}`;
+    }
+    return timeString;
   };
 
   const overallStats = {
     totalEvents: eventStats.length,
     totalAttendees: eventStats.reduce((sum, e) => sum + e.totalAttendees, 0),
+    totalRegistrations: eventStats.reduce((sum, e) => sum + e.totalRegistrations, 0),
     avgAttendanceRate: eventStats.length > 0
       ? eventStats.reduce((sum, e) => sum + e.attendanceRate, 0) / eventStats.length
       : 0,
@@ -213,64 +249,92 @@ export default function AttendanceAnalytics() {
   const selectedEventData = events.find(e => e.id === selectedEvent);
   const selectedEventStats = eventStats.find(s => s.eventId === selectedEvent);
 
+  // Filter out users who already have attendance marked
+  const availableUsers = registeredUsers.filter(reg =>
+    !attendanceRecords.some(att => att.userId === reg.userId)
+  );
+
   return (
     <DashboardLayout currentPage="/sk/attendance">
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        {/* Header */}
+        <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold">Attendance Analytics</h1>
-            <p className="text-muted-foreground">Track and analyze event participation</p>
+            <h1 className="text-3xl font-bold tracking-tight">Attendance Analytics</h1>
+            <p className="text-muted-foreground mt-1">Track and analyze event participation</p>
           </div>
-          {isStaff && (
-            <Button onClick={() => setShowMarkDialog(true)}>
+          {isStaff && selectedEvent && (
+            <Button onClick={() => setShowMarkDialog(true)} size="lg">
+              <UserCheck className="mr-2 h-4 w-4" />
               Mark Attendance
             </Button>
           )}
         </div>
 
-        <div className="grid gap-6 md:grid-cols-4 mb-6">
+        {/* Overall Statistics Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">Total Events</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Events</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{overallStats.totalEvents}</p>
+              <div className="text-2xl font-bold">{overallStats.totalEvents}</div>
+              <p className="text-xs text-muted-foreground">All time events tracked</p>
             </CardContent>
           </Card>
+
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">Total Attendees</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Registrations</CardTitle>
+              <Users className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-green-600">{overallStats.totalAttendees}</p>
+              <div className="text-2xl font-bold text-blue-600">{overallStats.totalRegistrations}</div>
+              <p className="text-xs text-muted-foreground">Approved participants</p>
             </CardContent>
           </Card>
+
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">Avg. Attendance Rate</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Attendees</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{overallStats.avgAttendanceRate.toFixed(1)}%</p>
+              <div className="text-2xl font-bold text-green-600">{overallStats.totalAttendees}</div>
+              <p className="text-xs text-muted-foreground">Marked as attended</p>
             </CardContent>
           </Card>
+
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">Upcoming Events</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Avg. Attendance Rate</CardTitle>
+              <TrendingUp className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-blue-600">{overallStats.upcomingEvents}</p>
+              <div className="text-2xl font-bold text-purple-600">
+                {overallStats.avgAttendanceRate.toFixed(1)}%
+              </div>
+              <p className="text-xs text-muted-foreground">Across all events</p>
             </CardContent>
           </Card>
         </div>
 
-        <Card className="mb-6">
+        {/* Event Statistics Table */}
+        <Card>
           <CardHeader>
-            <CardTitle>Event Statistics Overview</CardTitle>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              <CardTitle>Event Statistics Overview</CardTitle>
+            </div>
+            <CardDescription>Performance metrics for all events</CardDescription>
           </CardHeader>
           <CardContent>
             {eventStats.length === 0 ? (
               <div className="text-center py-12">
+                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No event statistics available.</p>
+                <p className="text-sm text-muted-foreground mt-1">Create events to start tracking attendance.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -279,11 +343,10 @@ export default function AttendanceAnalytics() {
                     <TableRow>
                       <TableHead>Event</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>Registered</TableHead>
-                      <TableHead>Present</TableHead>
-                      <TableHead>Absent</TableHead>
-                      <TableHead>Late</TableHead>
-                      <TableHead>Attendance Rate</TableHead>
+                      <TableHead className="text-center">Registered</TableHead>
+                      <TableHead className="text-center">Attended</TableHead>
+                      <TableHead className="text-center">No-Show</TableHead>
+                      <TableHead className="text-right">Attendance Rate</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -291,13 +354,24 @@ export default function AttendanceAnalytics() {
                       <TableRow key={stat.eventId}>
                         <TableCell className="font-medium">{stat.eventTitle}</TableCell>
                         <TableCell>
-                          {new Date(stat.eventDate).toLocaleDateString()}
+                          {new Date(stat.eventDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
                         </TableCell>
-                        <TableCell>{stat.totalRegistrations}</TableCell>
-                        <TableCell className="text-green-600 font-medium">{stat.present}</TableCell>
-                        <TableCell className="text-red-600 font-medium">{stat.absent}</TableCell>
-                        <TableCell className="text-orange-600 font-medium">{stat.late}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline">{stat.totalRegistrations}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className="bg-green-500">{stat.totalAttendees}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary">
+                            {stat.totalRegistrations - stat.totalAttendees}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
                           {getAttendanceRateBadge(stat.attendanceRate)}
                         </TableCell>
                       </TableRow>
@@ -309,14 +383,21 @@ export default function AttendanceAnalytics() {
           </CardContent>
         </Card>
 
+        {/* Attendance Details */}
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Attendance Details</CardTitle>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  <CardTitle>Attendance Details</CardTitle>
+                </div>
+                <CardDescription>View detailed attendance records by event</CardDescription>
+              </div>
               <div className="flex gap-2 items-center">
-                <span className="text-sm text-gray-600">Select Event:</span>
+                <Filter className="h-4 w-4 text-muted-foreground" />
                 <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-                  <SelectTrigger className="w-[250px]">
+                  <SelectTrigger className="w-[280px]">
                     <SelectValue placeholder="Select event..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -332,28 +413,63 @@ export default function AttendanceAnalytics() {
           </CardHeader>
           <CardContent>
             {selectedEventData && (
-              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold">{selectedEventData.title}</h3>
-                <p className="text-sm text-gray-600">
-                  {new Date(selectedEventData.eventDate).toLocaleString()}
-                </p>
+              <div className="mb-6 p-4 bg-muted/50 rounded-lg border">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">{selectedEventData.title}</h3>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(selectedEventData.eventDate).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </div>
+                      {selectedEventData.startTime && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {formatTime(selectedEventData.startTime)}
+                          {selectedEventData.endTime && ` - ${formatTime(selectedEventData.endTime)}`}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {selectedEventData.status && (
+                    <Badge variant={selectedEventData.status === 'COMPLETED' ? 'default' : 'secondary'}>
+                      {selectedEventData.status}
+                    </Badge>
+                  )}
+                </div>
+
+                <Separator className="my-3" />
+
                 {selectedEventStats && (
-                  <div className="grid grid-cols-4 gap-4 mt-2">
-                    <div>
-                      <p className="text-xs text-gray-600">Registered</p>
-                      <p className="text-lg font-bold">{selectedEventStats.totalRegistrations}</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-3 bg-background rounded-md">
+                      <Users className="h-4 w-4 text-muted-foreground mx-auto mb-1" />
+                      <p className="text-xs text-muted-foreground">Registered</p>
+                      <p className="text-xl font-bold">{selectedEventStats.totalRegistrations}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-600">Present</p>
-                      <p className="text-lg font-bold text-green-600">{selectedEventStats.present}</p>
+                    <div className="text-center p-3 bg-background rounded-md">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 mx-auto mb-1" />
+                      <p className="text-xs text-muted-foreground">Attended</p>
+                      <p className="text-xl font-bold text-green-600">{selectedEventStats.totalAttendees}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-600">Absent</p>
-                      <p className="text-lg font-bold text-red-600">{selectedEventStats.absent}</p>
+                    <div className="text-center p-3 bg-background rounded-md">
+                      <XCircle className="h-4 w-4 text-red-500 mx-auto mb-1" />
+                      <p className="text-xs text-muted-foreground">No-Show</p>
+                      <p className="text-xl font-bold text-red-600">
+                        {selectedEventStats.totalRegistrations - selectedEventStats.totalAttendees}
+                      </p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-600">Attendance Rate</p>
-                      <p className="text-lg font-bold">{selectedEventStats.attendanceRate.toFixed(1)}%</p>
+                    <div className="text-center p-3 bg-background rounded-md">
+                      <TrendingUp className="h-4 w-4 text-purple-500 mx-auto mb-1" />
+                      <p className="text-xs text-muted-foreground">Attendance Rate</p>
+                      <p className="text-xl font-bold text-purple-600">
+                        {selectedEventStats.attendanceRate.toFixed(1)}%
+                      </p>
                     </div>
                   </div>
                 )}
@@ -361,13 +477,19 @@ export default function AttendanceAnalytics() {
             )}
 
             {loading ? (
-              <p>Loading attendance...</p>
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground mt-4">Loading attendance...</p>
+              </div>
             ) : attendanceRecords.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No attendance records for this event.</p>
-                {isStaff && (
-                  <p className="text-sm text-gray-500 mt-2">Click "Mark Attendance" to start tracking.</p>
-                )}
+                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-lg font-medium">No attendance records yet</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {isStaff
+                    ? 'Click "Mark Attendance" above to start tracking participants.'
+                    : 'Attendance records will appear here once marked by event organizers.'}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -376,29 +498,36 @@ export default function AttendanceAnalytics() {
                     <TableRow>
                       <TableHead>Participant</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Check-in Time</TableHead>
-                      <TableHead>Check-out Time</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Notes</TableHead>
+                      <TableHead>Attended At</TableHead>
+                      <TableHead>Remarks</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {attendanceRecords.map((record) => (
                       <TableRow key={record.id}>
-                        <TableCell className="font-medium">{record.userName}</TableCell>
-                        <TableCell>{record.email}</TableCell>
-                        <TableCell>
-                          {new Date(record.checkInTime).toLocaleTimeString()}
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            {record.user
+                              ? `${record.user.firstName} ${record.user.lastName}`
+                              : 'Unknown User'}
+                          </div>
                         </TableCell>
+                        <TableCell>{record.user?.email || '-'}</TableCell>
                         <TableCell>
-                          {record.checkOutTime
-                            ? new Date(record.checkOutTime).toLocaleTimeString()
-                            : '-'}
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            {new Date(record.attendedAt).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
                         </TableCell>
-                        <TableCell>
-                          {getStatusBadge(record.attendanceStatus)}
+                        <TableCell className="max-w-xs truncate">
+                          {record.remarks || '-'}
                         </TableCell>
-                        <TableCell>{record.notes || '-'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -408,22 +537,40 @@ export default function AttendanceAnalytics() {
           </CardContent>
         </Card>
 
+        {/* Mark Attendance Dialog */}
         <Dialog open={showMarkDialog} onOpenChange={setShowMarkDialog}>
           <DialogContent className="max-w-xl">
             <DialogHeader>
-              <DialogTitle>Mark Attendance</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <UserCheck className="h-5 w-5" />
+                Mark Attendance
+              </DialogTitle>
             </DialogHeader>
+
             {selectedEventData && (
-              <div className="mb-4">
+              <div className="p-4 bg-muted/50 rounded-lg border">
                 <h3 className="font-semibold">{selectedEventData.title}</h3>
-                <p className="text-sm text-gray-600">
-                  {new Date(selectedEventData.eventDate).toLocaleString()}
-                </p>
+                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {new Date(selectedEventData.eventDate).toLocaleDateString()}
+                  </div>
+                  {selectedEventData.startTime && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatTime(selectedEventData.startTime)}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
+
             <form onSubmit={handleMarkAttendance} className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Select Participant *</label>
+                <label className="text-sm font-medium flex items-center gap-2 mb-2">
+                  <Users className="h-4 w-4" />
+                  Select Participant *
+                </label>
                 <Select
                   value={markFormData.userId}
                   onValueChange={(value) => setMarkFormData({...markFormData, userId: value})}
@@ -432,48 +579,56 @@ export default function AttendanceAnalytics() {
                     <SelectValue placeholder="Choose a registered participant..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {registeredUsers.map((user) => (
-                      <SelectItem key={user.userId} value={user.userId}>
-                        {user.userName}
-                      </SelectItem>
-                    ))}
+                    {availableUsers.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        {registeredUsers.length === 0
+                          ? 'No approved registrations yet'
+                          : 'All participants already marked'}
+                      </div>
+                    ) : (
+                      availableUsers.map((registration) => (
+                        <SelectItem key={registration.userId} value={registration.userId}>
+                          {`${registration.user.firstName} ${registration.user.lastName}`}
+                          <span className="text-muted-foreground text-xs ml-2">
+                            ({registration.user.email})
+                          </span>
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {availableUsers.length} participant(s) available to mark
+                </p>
               </div>
 
               <div>
-                <label className="text-sm font-medium">Attendance Status *</label>
-                <Select
-                  value={markFormData.status}
-                  onValueChange={(value) => setMarkFormData({...markFormData, status: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PRESENT">Present</SelectItem>
-                    <SelectItem value="ABSENT">Absent</SelectItem>
-                    <SelectItem value="LATE">Late</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Notes</label>
-                <textarea
-                  className="w-full p-2 border rounded-md"
+                <label className="text-sm font-medium mb-2 block">Remarks (Optional)</label>
+                <Textarea
                   rows={3}
-                  value={markFormData.notes}
-                  onChange={(e) => setMarkFormData({...markFormData, notes: e.target.value})}
-                  placeholder="Any additional notes"
+                  value={markFormData.remarks}
+                  onChange={(e) => setMarkFormData({...markFormData, remarks: e.target.value})}
+                  placeholder="Any additional notes about the attendance..."
                 />
               </div>
 
-              <div className="flex gap-2 justify-end pt-4">
-                <Button type="button" variant="outline" onClick={() => setShowMarkDialog(false)}>
+              <Separator />
+
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowMarkDialog(false);
+                    setMarkFormData({ userId: '', remarks: '' });
+                  }}
+                >
                   Cancel
                 </Button>
-                <Button type="submit">Mark Attendance</Button>
+                <Button type="submit" disabled={!markFormData.userId}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Mark as Attended
+                </Button>
               </div>
             </form>
           </DialogContent>
