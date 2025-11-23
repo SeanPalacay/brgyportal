@@ -345,10 +345,23 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
 export const updateStudent = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const {
+      createdAt,
+      updatedAt,
+      registration,
+      attendanceRecords,
+      progressReports,
+      certificates,
+      ...updateData
+    } = req.body;
 
     if (updateData.dateOfBirth) {
       updateData.dateOfBirth = new Date(updateData.dateOfBirth);
+    }
+
+    // Normalize optional fields
+    if (updateData.shift !== undefined) {
+      updateData.shift = updateData.shift || null;
     }
 
     const student = await prisma.daycareStudent.update({

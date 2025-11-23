@@ -245,6 +245,7 @@ model DaycareStudent {
   allergies           String?
   medicalConditions   String?
   emergencyContact    String
+  shift               String?
   enrollmentDate      DateTime              @default(now())
   status              String                @default("ACTIVE")
   createdAt           DateTime              @default(now())
