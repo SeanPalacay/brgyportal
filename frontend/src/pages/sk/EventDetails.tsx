@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, Users, ArrowLeft, UserCheck } from 'lucide-react';
 import type { Event } from '@/types/index';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 interface EventRegistration {
   id: string;
@@ -146,7 +149,7 @@ export default function EventDetails() {
           </CardHeader>
           <CardContent className="space-y-6">
             <p className="text-muted-foreground">{event.description}</p>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
@@ -163,7 +166,7 @@ export default function EventDetails() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   <Clock className="h-5 w-5 text-muted-foreground" />
                   <div>
@@ -184,7 +187,7 @@ export default function EventDetails() {
                     <p className="text-sm text-muted-foreground">{event.location}</p>
                   </div>
                 </div>
-                
+
                 {event.maxParticipants && (
                   <div className="flex items-center gap-3">
                     <Users className="h-5 w-5 text-muted-foreground" />
@@ -338,60 +341,55 @@ export default function EventDetails() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
 
-    {/* Mark Attendance Dialog */}
-    <>
-      {showMarkAttendance && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold mb-4">Mark Attendance</h3>
-
-            <form onSubmit={markAttendance}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Select Participant</label>
-                <select
-                  value={markAttendanceData.userId}
-                  onChange={(e) => setMarkAttendanceData({...markAttendanceData, userId: e.target.value})}
-                  className="w-full p-2 border rounded-md"
-                  required
-                >
-                  <option value="">Choose a participant...</option>
+      {/* Mark Attendance Dialog */}
+      <Dialog open={showMarkAttendance} onOpenChange={setShowMarkAttendance}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark Attendance</DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={markAttendance} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Select Participant</label>
+              <Select
+                value={markAttendanceData.userId}
+                onValueChange={(value) => setMarkAttendanceData({...markAttendanceData, userId: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a participant..." />
+                </SelectTrigger>
+                <SelectContent>
                   {attendance.length < 100 && registrations
                     .filter(reg => !attendance.some(att => att.userId === reg.user.id))
                     .map(reg => (
-                      <option key={reg.user.id} value={reg.user.id}>
+                      <SelectItem key={reg.user.id} value={reg.user.id}>
                         {reg.user.firstName} {reg.user.lastName}
-                      </option>
+                      </SelectItem>
                     ))}
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Remarks (Optional)</label>
-                <textarea
-                  value={markAttendanceData.remarks}
-                  onChange={(e) => setMarkAttendanceData({...markAttendanceData, remarks: e.target.value})}
-                  className="w-full p-2 border rounded-md"
-                  rows={3}
-                  placeholder="Any additional notes..."
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowMarkAttendance(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">Mark Attended</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Remarks (Optional)</label>
+              <Textarea
+                value={markAttendanceData.remarks}
+                onChange={(e) => setMarkAttendanceData({...markAttendanceData, remarks: e.target.value})}
+                placeholder="Any additional notes..."
+                rows={3}
+              />
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowMarkAttendance(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Mark Attended</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </DashboardLayout>
   );
 }
