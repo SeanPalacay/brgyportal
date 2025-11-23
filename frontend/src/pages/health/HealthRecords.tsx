@@ -11,6 +11,25 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Patient } from '@/types';
 
+interface ImmunizationCard {
+  id: string;
+  patientId: string;
+  patient?: Patient;
+  cardData: {
+    childInformation: any;
+    vaccinationSchedule: Array<{
+      vaccine: string;
+      doses: Array<{
+        number: number;
+        timing: string;
+        dueDate?: string;
+        dateGiven?: string | null;
+        remarks?: string | null;
+      }>;
+    }>;
+  };
+}
+
 interface ImmunizationRecord {
   id: string;
   patientId: string;
@@ -34,6 +53,7 @@ interface ImmunizationRecord {
 
 export default function HealthRecords() {
   const [records, setRecords] = useState<ImmunizationRecord[]>([]);
+  const [cards, setCards] = useState<ImmunizationCard[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -69,6 +89,7 @@ export default function HealthRecords() {
   useEffect(() => {
     fetchPatients();
     fetchRecords();
+    fetchCards();
   }, []);
 
   const fetchPatients = async () => {
@@ -94,6 +115,16 @@ export default function HealthRecords() {
       toast.error('Failed to fetch immunization records');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCards = async () => {
+    try {
+      const response = await api.get('/health/immunization-cards');
+      setCards(response.data.cards || []);
+    } catch (error) {
+      console.error('Failed to fetch immunization cards:', error);
+      toast.error('Failed to fetch immunization cards');
     }
   };
 
@@ -215,6 +246,16 @@ export default function HealthRecords() {
                   return recordDate.getMonth() === now.getMonth() && recordDate.getFullYear() === now.getFullYear();
                 }).length}
               </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Infant Immunization Cards
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{cards.length}</p>
             </CardContent>
           </Card>
         </div>
@@ -351,6 +392,52 @@ export default function HealthRecords() {
             )}
           </CardContent>
         </Card>
+
+        {/* Infant Immunization Cards (auto-generated) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Infant Immunization Cards</h2>
+            <span className="text-sm text-muted-foreground">Auto-generated for patients under 1 year old</span>
+          </div>
+          {cards.length === 0 ? (
+            <p className="text-muted-foreground">No immunization cards found.</p>
+          ) : (
+            <div className="space-y-3">
+              {cards.map((card) => (
+                <Card key={card.id}>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      {card.patient?.firstName} {card.patient?.lastName}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-sm text-muted-foreground mb-2">
+                      Family # {card.cardData.childInformation?.familyNumber}
+                    </div>
+                    <div className="space-y-2">
+                      {card.cardData.vaccinationSchedule.map((vaccine) => (
+                        <div key={vaccine.vaccine} className="border rounded p-3">
+                          <div className="font-semibold mb-2">{vaccine.vaccine}</div>
+                          <div className="grid md:grid-cols-2 gap-2 text-sm">
+                            {vaccine.doses.map((dose) => (
+                              <div key={dose.number} className="flex items-center justify-between">
+                                <span>Dose {dose.number} ({dose.timing})</span>
+                                <span>
+                                  Due {dose.dueDate ? new Date(dueDateSafe(dose.dueDate)).toLocaleDateString() : '—'}
+                                  {dose.dateGiven ? ` • Given ${new Date(dose.dateGiven).toLocaleDateString()}` : ''}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
 
         {isHealthWorker && (
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
@@ -678,3 +765,10 @@ export default function HealthRecords() {
     </DashboardLayout>
   );
 }
+
+// Guard against invalid dates coming from API
+const dueDateSafe = (value?: string) => {
+  if (!value) return '';
+  const parsed = new Date(value);
+  return isNaN(parsed.getTime()) ? '' : parsed.toISOString();
+};
