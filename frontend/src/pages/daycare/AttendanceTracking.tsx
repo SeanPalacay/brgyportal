@@ -42,6 +42,7 @@ export default function AttendanceTracking() {
   const [showDialog, setShowDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [quickMarkMode, setQuickMarkMode] = useState(false);
+  const [shiftFilter, setShiftFilter] = useState<'all' | 'morning' | 'afternoon' | 'unassigned'>('all');
   const [formData, setFormData] = useState({
     studentId: '',
     status: 'PRESENT',
@@ -191,7 +192,7 @@ export default function AttendanceTracking() {
     return records.find(r => r.studentId === studentId && r.attendanceDate === selectedDate);
   };
 
-  const getShiftBadge = (shift?: 'morning' | 'afternoon' | null) => {
+  const getShiftBadge = (shift?: 'morning' | 'afternoon' | 'unassigned' | null) => {
     if (shift === 'morning') return <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">Morning</Badge>;
     if (shift === 'afternoon') return <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-100">Afternoon</Badge>;
     return <Badge variant="outline" className="bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-100">Unassigned</Badge>;
@@ -202,6 +203,12 @@ export default function AttendanceTracking() {
     present: records.filter(r => r.status === 'PRESENT').length,
     absent: records.filter(r => r.status === 'ABSENT').length,
     late: records.filter(r => r.status === 'LATE').length
+  };
+
+  const matchesShiftFilter = (shift?: 'morning' | 'afternoon' | 'unassigned' | null) => {
+    if (shiftFilter === 'all') return true;
+    if (!shift && shiftFilter === 'unassigned') return true;
+    return shift === shiftFilter;
   };
 
   // Generate attendance report PDF with morning/afternoon sections
@@ -378,13 +385,31 @@ export default function AttendanceTracking() {
         </div>
 
         <div className="mb-6">
-          <label className="text-sm font-medium mb-2 block">Select Date</label>
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="max-w-xs"
-          />
+          <div className="flex flex-wrap gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Select Date</label>
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="max-w-xs"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Filter by Shift</label>
+              <Select value={shiftFilter} onValueChange={(val: any) => setShiftFilter(val)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="All shifts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All shifts</SelectItem>
+                  <SelectItem value="morning">Morning</SelectItem>
+                  <SelectItem value="afternoon">Afternoon</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-4 mb-6">
@@ -430,6 +455,7 @@ export default function AttendanceTracking() {
             <CardContent>
               <div className="space-y-2">
                 {students
+                  .filter(student => matchesShiftFilter(student.shift)) // shift filter
                   .filter(student => !isStudentMarked(student.id)) // Only show unmarked students
                   .map((student) => (
                     <div key={student.id} className="flex items-center justify-between p-4 border rounded-lg">
@@ -438,7 +464,7 @@ export default function AttendanceTracking() {
                           {student.firstName} {student.lastName}
                         </p>
                         <p className="text-sm text-gray-500">
-                          {new Date().getFullYear() - new Date(student.dateOfBirth).getFullYear()} years old
+                          {new Date().getFullYear() - new Date(student.dateOfBirth).getFullYear()} years old • {getShiftBadge(student.shift)}
                         </p>
                       </div>
                       <div className="flex gap-2">
@@ -471,6 +497,7 @@ export default function AttendanceTracking() {
                   <div className="mt-6">
                     <h3 className="font-medium mb-2 text-gray-500">Already Marked</h3>
                     {students
+                      .filter(student => matchesShiftFilter(student.shift))
                       .filter(student => isStudentMarked(student.id))
                       .map((student) => {
                         const record = getStudentRecord(student.id);
@@ -478,7 +505,7 @@ export default function AttendanceTracking() {
                           <div key={`marked-${student.id}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border m-1">
                             <div className="flex-1">
                               <p className="font-medium text-gray-700">
-                                {student.firstName} {student.lastName}
+                                {student.firstName} {student.lastName} {getShiftBadge(student.shift)}
                               </p>
                             </div>
                             {record && (
@@ -604,10 +631,12 @@ export default function AttendanceTracking() {
                     <SelectTrigger>
                       <SelectValue placeholder="Choose a student..." />
                     </SelectTrigger>
-                    <SelectContent>
-                      {students.map((student) => (
+                <SelectContent>
+                      {students
+                        .filter((student) => matchesShiftFilter(student.shift))
+                        .map((student) => (
                         <SelectItem key={student.id} value={student.id}>
-                          {student.firstName} {student.lastName}
+                          {student.firstName} {student.lastName} {student.shift ? `(${student.shift})` : '(Unassigned)'}
                           {isStudentMarked(student.id) && ' (Already marked)'}
                         </SelectItem>
                       ))}
