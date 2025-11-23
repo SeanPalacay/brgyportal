@@ -206,6 +206,7 @@ model Patient {
   appointments        Appointment[]
   immunizationRecords ImmunizationRecord[]
   certificates        Certificate[]
+  immunizationCard    ImmunizationCard?
 
   @@map("patients")
 }
