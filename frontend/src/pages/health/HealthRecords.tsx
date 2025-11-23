@@ -8,9 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Patient } from '@/types';
-import { AlertTriangle, CheckCircle, Clock, Eye } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Eye, Edit3 } from 'lucide-react';
 
 interface ImmunizationCard {
   id: string;
@@ -63,6 +64,8 @@ export default function HealthRecords() {
   const [filterPatient, setFilterPatient] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedRecord, setSelectedRecord] = useState<ImmunizationRecord | null>(null);
+  const [recordDraft, setRecordDraft] = useState<ImmunizationRecord | null>(null);
+  const [recordEditOpen, setRecordEditOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<ImmunizationCard | null>(null);
   const [cardDialogOpen, setCardDialogOpen] = useState(false);
   const [cardDraft, setCardDraft] = useState<ImmunizationCard | null>(null);
@@ -224,6 +227,22 @@ export default function HealthRecords() {
     }
   };
 
+  const updateRecordField = (field: 'dateGiven' | 'notes', value: string) => {
+    setRecordDraft((prev) => {
+      if (!prev) return prev;
+      return { ...prev, [field]: value };
+    });
+  };
+
+  const saveRecordEdits = async () => {
+    if (!recordDraft) return;
+    // No backend update endpoint available; update UI state for now.
+    setRecords((prev) => prev.map((r) => (r.id === recordDraft.id ? { ...r, ...recordDraft } : r)));
+    toast.success('Record updated locally');
+    setRecordEditOpen(false);
+    setRecordDraft(null);
+  };
+
   const getDoseStatus = (dose: { dueDate?: string; dateGiven?: string | null }) => {
     if (dose.dateGiven) return 'completed';
     if (!dose.dueDate) return 'pending';
@@ -369,11 +388,11 @@ export default function HealthRecords() {
                   const statusMatch = filterStatus === 'all' || status === filterStatus;
                   return patientMatch && statusMatch;
                 }).map((record) => (
-                  <div key={record.id} className="border p-4 rounded-lg flex items-center justify-between gap-4">
+                  <div key={record.id} className="border p-4 rounded-lg flex items-center justify-between gap-4 bg-white dark:bg-slate-900/40">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {!isPatient && (
-                          <span className="text-sm font-semibold text-gray-900">
+                          <span className="text-sm font-semibold text-gray-900 dark:text-slate-100">
                             {record.patient?.firstName} {record.patient?.lastName}
                           </span>
                         )}
@@ -385,7 +404,7 @@ export default function HealthRecords() {
                           {getRecordStatus(record).replace('-', ' ')}
                         </Badge>
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 dark:text-slate-200">
                         Given {new Date(record.dateGiven).toLocaleDateString()}
                         {record.nextDueDate && (
                           <> • Next due {new Date(record.nextDueDate).toLocaleDateString()}</>
@@ -409,7 +428,7 @@ export default function HealthRecords() {
                           setShowDetailsDialog(true);
                         }}
                       >
-                        View
+                        <Eye className="h-4 w-4 mr-1" /> View
                       </Button>
                       <Button
                         variant="outline"
@@ -419,7 +438,7 @@ export default function HealthRecords() {
                           setRecordEditOpen(true);
                         }}
                       >
-                        Edit
+                        <Edit3 className="h-4 w-4 mr-1" /> Edit
                       </Button>
                     </div>
                   </div>
@@ -791,6 +810,45 @@ export default function HealthRecords() {
           </DialogContent>
         </Dialog>
         )}
+
+        {/* Immunization Record Edit Modal */}
+        <Dialog open={recordEditOpen} onOpenChange={(open) => { setRecordEditOpen(open); if (!open) setRecordDraft(null); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Immunization Record</DialogTitle>
+            </DialogHeader>
+            {recordDraft && (
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  {recordDraft.patient?.firstName} {recordDraft.patient?.lastName} • {recordDraft.vaccineName}
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Date Given</Label>
+                  <Input
+                    type="date"
+                    value={recordDraft.dateGiven ? recordDraft.dateGiven.split('T')[0] : ''}
+                    onChange={(e) => updateRecordField('dateGiven', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Remarks</Label>
+                  <Textarea
+                    rows={3}
+                    value={recordDraft.notes || ''}
+                    onChange={(e) => updateRecordField('notes', e.target.value)}
+                    placeholder="Add remarks or notes"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => { setRecordEditOpen(false); setRecordDraft(null); }}>
+                    Cancel
+                  </Button>
+                  <Button onClick={saveRecordEdits}>Save</Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Immunization Record Details Modal */}
         <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
