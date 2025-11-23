@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ interface Registration {
 }
 
 export default function EventRegistration() {
+  const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,13 +53,12 @@ export default function EventRegistration() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [allRegistrations, setAllRegistrations] = useState<Registration[]>([]);
   const [formData, setFormData] = useState({
-    contactNumber: '',
+    contactNumber: user?.contactNumber || '',
     notes: ''
   });
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const userRoles = user.roles || [user.role]; // Support both single role and multi-role
-  const isStaff = userRoles.some((role: string) => ['SK_OFFICER', 'SK_CHAIRMAN', 'SYSTEM_ADMIN'].includes(role));
+  const userRoles = user?.roles || [user?.role]; // Support both single role and multi-role
+  const isStaff = userRoles?.some((role: string) => ['SK_OFFICER', 'SK_CHAIRMAN', 'SYSTEM_ADMIN'].includes(role));
 
   // Helper function to format time correctly (avoid timezone issues)
   const formatTime = (timeString: string) => {
@@ -576,7 +577,7 @@ export default function EventRegistration() {
                     let value = e.target.value;
                     // Remove any non-digit characters
                     value = value.replace(/\D/g, '');
-                    
+
                     // Handle different input formats
                     if (value.startsWith('639')) {
                       // Convert +639XXXXXXXXX to 09XXXXXXXXX
@@ -585,7 +586,7 @@ export default function EventRegistration() {
                       // Convert 9XXXXXXXXX to 09XXXXXXXXX
                       value = '0' + value;
                     }
-                    
+
                     // Ensure it starts with 09 and limit to 11 digits
                     if (value.length > 0 && !value.startsWith('09')) {
                       if (value.startsWith('0')) {
@@ -594,21 +595,22 @@ export default function EventRegistration() {
                         value = '09' + value;
                       }
                     }
-                    
+
                     // Limit to 11 digits
                     if (value.length > 11) {
                       value = value.substring(0, 11);
                     }
-                    
+
                     setFormData({...formData, contactNumber: value});
                   }}
                   placeholder="09XXXXXXXXX"
                   maxLength={11}
                   pattern="09[0-9]{9}"
                   required
+                  readOnly // Make the field read-only to prevent manual editing
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Enter your phone number in 09XXXXXXXXX format
+                  Auto-populated from your profile: {user?.contactNumber || 'Not set in profile'}
                 </p>
               </div>
 
@@ -622,12 +624,6 @@ export default function EventRegistration() {
                 />
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-md">
-                <p className="text-sm text-blue-800">
-                  <strong>Note:</strong> Your registration will be pending approval by the event organizer.
-                  You will receive a notification once your registration is approved.
-                </p>
-              </div>
 
               <div className="flex gap-2 justify-end pt-4">
                 <Button

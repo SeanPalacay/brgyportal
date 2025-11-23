@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -8,6 +8,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { FileText, Download } from 'lucide-react';
+
+interface ImmunizationRecord {
+  id: string;
+  patientId: string;
+  vaccineName: string;
+  vaccineType: string;
+  dateGiven: string;
+  administeredBy: string;
+  certificateData?: any;
+}
 
 export default function ChildRegistrationForm() {
   const [loading, setLoading] = useState(false);
@@ -27,6 +38,70 @@ export default function ChildRegistrationForm() {
     emergencyPhone: '',
     additionalNotes: ''
   });
+  const [immunizationCardFile, setImmunizationCardFile] = useState<File | null>(null);
+  const [immunizationCardUrl, setImmunizationCardUrl] = useState<string | null>(null);
+  const [autoFetchedImmunization, setAutoFetchedImmunization] = useState<ImmunizationRecord[]>([]);
+  const [isSearchingImmunization, setIsSearchingImmunization] = useState(false);
+  const [useFetchedImmunization, setUseFetchedImmunization] = useState(true);
+
+  // Auto-fetch immunization records when child information changes
+  useEffect(() => {
+    const searchImmunization = async () => {
+      if (formData.childFirstName && formData.childLastName && formData.childDateOfBirth) {
+        setIsSearchingImmunization(true);
+        try {
+          const response = await api.get('/health/immunization-records');
+          const allRecords = response.data.immunizationRecords || [];
+
+          // Filter records by child's name and birth date
+          const matchedRecords = allRecords.filter((record: any) =>
+            record.patient.firstName.toLowerCase().includes(formData.childFirstName.toLowerCase()) &&
+            record.patient.lastName.toLowerCase().includes(formData.childLastName.toLowerCase()) &&
+            record.patient.dateOfBirth === formData.childDateOfBirth
+          );
+
+          setAutoFetchedImmunization(matchedRecords);
+          if (matchedRecords.length > 0) {
+            setUseFetchedImmunization(true);
+          }
+        } catch (error) {
+          console.error('Error fetching immunization records:', error);
+        } finally {
+          setIsSearchingImmunization(false);
+        }
+      }
+    };
+
+    const debounceTimer = setTimeout(searchImmunization, 500); // Debounce the search
+    return () => clearTimeout(debounceTimer);
+  }, [formData.childFirstName, formData.childLastName, formData.childDateOfBirth]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+
+      // Validate file type
+      const allowedTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png'
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('File type not supported. Please upload PDF, JPG, or PNG files.');
+        return;
+      }
+
+      setImmunizationCardFile(file);
+      setUseFetchedImmunization(false);
+      toast.success(`File "${file.name}" selected`);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,10 +119,16 @@ export default function ChildRegistrationForm() {
       return;
     }
 
+    // Verify immunization card is provided
+    if (!useFetchedImmunization && !immunizationCardFile) {
+      toast.error('Please provide an immunization card either by auto-fetch or file upload');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Map frontend fields to backend schema
+      // Prepare the form data
       const payload = {
         childFirstName: formData.childFirstName,
         childMiddleName: formData.childMiddleName || null,
@@ -66,7 +147,22 @@ export default function ChildRegistrationForm() {
           formData.additionalNotes
         ].filter(Boolean).join('\n') || null
       };
-      await api.post('/daycare/registrations', payload);
+
+      // Create registration
+      const registrationResponse = await api.post('/daycare/registrations', payload);
+
+      // Create FormData for immunization card upload if needed
+      if (!useFetchedImmunization && immunizationCardFile) {
+        const fileFormData = new FormData();
+        fileFormData.append('file', immunizationCardFile);
+        fileFormData.append('registrationId', registrationResponse.data.registration.id);
+
+        await api.post('/daycare/registrations/upload-immunization', fileFormData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      }
 
       toast.success('Daycare registration submitted successfully! You will receive a notification once it\'s reviewed.');
 
@@ -87,7 +183,10 @@ export default function ChildRegistrationForm() {
         emergencyPhone: '',
         additionalNotes: ''
       });
-    } catch {
+      setImmunizationCardFile(null);
+      setAutoFetchedImmunization([]);
+    } catch (error) {
+      console.error('Registration error:', error);
       toast.error('Failed to submit registration. Please try again.');
     } finally {
       setLoading(false);
@@ -325,6 +424,99 @@ export default function ChildRegistrationForm() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Immunization Card */}
+              <div className="border-t pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <Label>Immunization Card</Label>
+                  {autoFetchedImmunization.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-green-600">
+                        {autoFetchedImmunization.length} record(s) found
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUseFetchedImmunization(!useFetchedImmunization)}
+                      >
+                        {useFetchedImmunization ? 'Use Upload Instead' : 'Use Auto-Fetched'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {isSearchingImmunization && (
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-4 w-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                    <span className="text-sm text-muted-foreground">Searching for immunization records...</span>
+                  </div>
+                )}
+
+                {useFetchedImmunization && autoFetchedImmunization.length > 0 && (
+                  <div className="mb-4 p-4 border rounded-lg bg-green-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium">Auto-fetched Immunization Records</h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUseFetchedImmunization(false)}
+                      >
+                        Use Upload Instead
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {autoFetchedImmunization.map((record, index) => (
+                        <div key={record.id} className="text-sm">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-green-600" />
+                            <span>
+                              {record.vaccineName} - {new Date(record.dateGiven).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      These records were automatically retrieved from the health system
+                    </p>
+                  </div>
+                )}
+
+                {!useFetchedImmunization && (
+                  <div className="space-y-4">
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 hover:border-muted-foreground/50 transition-colors">
+                      <Input
+                        id="immunizationCard"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleFileSelect}
+                        className="cursor-pointer"
+                      />
+                      {immunizationCardFile && (
+                        <div className="flex items-center gap-2 text-sm text-green-600 mt-2">
+                          <FileText className="h-4 w-4" />
+                          <span>{immunizationCardFile.name}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-muted/30 p-3 rounded-lg">
+                      <p className="text-xs text-muted-foreground font-medium mb-1">File Requirements:</p>
+                      <p className="text-xs text-muted-foreground">
+                        • Upload immunization card/record in PDF, JPG, or PNG format
+                        <br />• Maximum size: 5MB
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {autoFetchedImmunization.length === 0 && !immunizationCardFile && !useFetchedImmunization && (
+                  <div className="text-sm text-muted-foreground">
+                    No immunization records found. Please upload a copy of the immunization card.
+                  </div>
+                )}
               </div>
 
               {/* Additional Notes */}

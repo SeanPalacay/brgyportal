@@ -71,13 +71,23 @@ export default function EventManagement() {
 
     if (statusFilter !== 'all') {
       filtered = filtered.filter(event => event.status === statusFilter);
+    } else {
+      // Exclude cancelled events when showing all events
+      filtered = filtered.filter(event => event.status !== 'CANCELLED');
     }
 
     if (categoryFilter !== 'all') {
       filtered = filtered.filter(event => event.category === categoryFilter);
     }
 
-    setFilteredEvents(filtered);
+    // Sort events: future events first (by date ascending), then past events (by date descending)
+    const now = new Date();
+    const futureEvents = filtered.filter(event => new Date(event.eventDate) >= now)
+      .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+    const pastEvents = filtered.filter(event => new Date(event.eventDate) < now)
+      .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
+
+    setFilteredEvents([...futureEvents, ...pastEvents]);
   };
 
   // Helper function to format time correctly (avoid timezone issues)
@@ -290,8 +300,8 @@ export default function EventManagement() {
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="DRAFT">Draft</SelectItem>
                     <SelectItem value="PUBLISHED">Published</SelectItem>
+                    <SelectItem value="ONGOING">Ongoing</SelectItem>
                     <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -383,11 +393,19 @@ export default function EventManagement() {
                   </div>
                   <div>
                     <label className="text-sm font-medium">Category</label>
-                    <Input
-                      value={formData.category}
-                      onChange={(e) => setFormData({...formData, category: e.target.value})}
-                      placeholder="Sports, Cultural, Educational, etc."
-                    />
+                    <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Sports">Sports</SelectItem>
+                        <SelectItem value="Health">Health</SelectItem>
+                        <SelectItem value="Educational">Educational</SelectItem>
+                        <SelectItem value="Cultural">Cultural</SelectItem>
+                        <SelectItem value="Assembly">Assembly</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label className="text-sm font-medium">Max Participants</label>
@@ -439,8 +457,12 @@ export default function EventManagement() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
                       <CardTitle className="text-lg line-clamp-2 hover:text-primary transition-colors">{event.title}</CardTitle>
-                      <Badge 
-                        variant={event.status === 'PUBLISHED' ? 'default' : event.status === 'DRAFT' ? 'secondary' : event.status === 'COMPLETED' ? 'outline' : 'destructive'}
+                      <Badge
+                        variant={event.status === 'PUBLISHED' ? 'default' :
+                                event.status === 'DRAFT' ? 'secondary' :
+                                event.status === 'COMPLETED' ? 'outline' :
+                                event.status === 'ONGOING' ? 'default' :
+                                'destructive'}
                         className="shrink-0"
                       >
                         {event.status}
@@ -449,7 +471,7 @@ export default function EventManagement() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
-                    
+
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -583,11 +605,19 @@ export default function EventManagement() {
                 </div>
                 <div>
                   <label className="text-sm font-medium">Category</label>
-                  <Input
-                    value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    placeholder="Sports, Cultural, Educational, etc."
-                  />
+                  <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Sports">Sports</SelectItem>
+                      <SelectItem value="Health">Health</SelectItem>
+                      <SelectItem value="Educational">Educational</SelectItem>
+                      <SelectItem value="Cultural">Cultural</SelectItem>
+                      <SelectItem value="Assembly">Assembly</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Max Participants</label>

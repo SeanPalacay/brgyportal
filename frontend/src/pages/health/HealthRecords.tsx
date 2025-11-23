@@ -36,10 +36,12 @@ export default function HealthRecords() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState('');
   const [filterPatient, setFilterPatient] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  
+  const [selectedRecord, setSelectedRecord] = useState<ImmunizationRecord | null>(null);
+
   // Get user role to determine interface
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userRoles = user.roles || [user.role];
@@ -330,7 +332,14 @@ export default function HealthRecords() {
                         {record.nextDueDate && new Date(record.nextDueDate) > new Date() && (
                           <Badge variant="secondary">Next Due</Badge>
                         )}
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedRecord(record);
+                            setShowDetailsDialog(true);
+                          }}
+                        >
                           View Details
                         </Button>
                       </div>
@@ -533,6 +542,137 @@ export default function HealthRecords() {
           </DialogContent>
         </Dialog>
         )}
+
+        {/* Immunization Record Details Modal */}
+        <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Immunization Record Details</DialogTitle>
+            </DialogHeader>
+
+            {selectedRecord && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Patient Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Patient Name</Label>
+                      <p className="text-sm">
+                        {selectedRecord.patient?.firstName} {selectedRecord.patient?.middleName} {selectedRecord.patient?.lastName}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Date of Birth</Label>
+                      <p className="text-sm">{selectedRecord.patient?.dateOfBirth ? new Date(selectedRecord.patient.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Vaccine Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Vaccine Name</Label>
+                      <p className="text-sm">{selectedRecord.vaccineName}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Vaccine Type</Label>
+                      <p className="text-sm">{selectedRecord.vaccineType}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Dosage</Label>
+                      <p className="text-sm">{selectedRecord.dosage || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Dose Number</Label>
+                      <p className="text-sm">{selectedRecord.doseNumber || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Manufacturer</Label>
+                      <p className="text-sm">{selectedRecord.manufacturer || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Lot Number</Label>
+                      <p className="text-sm">{selectedRecord.lotNumber || 'N/A'}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Administration Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Date Given</Label>
+                      <p className="text-sm">{new Date(selectedRecord.dateGiven).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Age at Vaccination</Label>
+                      <p className="text-sm">{selectedRecord.ageAtVaccination || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Site of Administration</Label>
+                      <p className="text-sm">{selectedRecord.siteOfAdministration || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Administered By</Label>
+                      <p className="text-sm">{selectedRecord.administeredBy}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Schedule Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Next Due Date</Label>
+                      <p className="text-sm">{selectedRecord.nextDueDate ? new Date(selectedRecord.nextDueDate).toLocaleDateString() : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Batch Number</Label>
+                      <p className="text-sm">{selectedRecord.batchNumber || 'N/A'}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Expiration Date</Label>
+                      <p className="text-sm">{selectedRecord.expirationDate ? new Date(selectedRecord.expirationDate).toLocaleDateString() : 'N/A'}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Additional Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {selectedRecord.adverseReactions && (
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Adverse Reactions</Label>
+                        <p className="text-sm text-red-600">{selectedRecord.adverseReactions}</p>
+                      </div>
+                    )}
+                    {selectedRecord.notes && (
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Notes</Label>
+                        <p className="text-sm">{selectedRecord.notes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <div className="flex justify-end">
+                  <Button onClick={() => setShowDetailsDialog(false)}>Close</Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

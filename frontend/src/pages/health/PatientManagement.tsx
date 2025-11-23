@@ -51,6 +51,7 @@ export default function PatientManagement() {
     address: '',
     contactNumber: '',
     emergencyContact: '',
+    emergencyContactName: '',
     guardianName: '',
     birthWeight: '',
     birthLength: '',
@@ -115,6 +116,7 @@ export default function PatientManagement() {
       address: string;
       contactNumber: string;
       emergencyContact: string;
+      emergencyContactName?: string;
       guardianName?: string;
       birthWeight?: string;
       birthLength?: string;
@@ -165,6 +167,7 @@ export default function PatientManagement() {
       address: '',
       contactNumber: '',
       emergencyContact: '',
+      emergencyContactName: '',
       guardianName: '',
       birthWeight: '',
       birthLength: '',
@@ -193,6 +196,7 @@ export default function PatientManagement() {
       address: patient.address,
       contactNumber: patient.contactNumber,
       emergencyContact: patient.emergencyContact,
+      emergencyContactName: patient.emergencyContactName || '',
       guardianName: patient.guardianName || '',
       birthWeight: patient.birthWeight?.toString() || '',
       birthLength: patient.birthLength?.toString() || '',
@@ -221,16 +225,28 @@ export default function PatientManagement() {
     if (!selectedPatient) return;
 
     try {
-      const response = await api.put(`/health/patients/${selectedPatient.id}`, formData);
-      setPatients(patients.map(p => p.id === selectedPatient.id ? response.data.patient : p));
+      // Prepare the update data - make sure to convert number fields back to numbers if needed
+      const updateData = {
+        ...formData,
+        birthWeight: formData.birthWeight ? parseFloat(formData.birthWeight) : null,
+        birthLength: formData.birthLength ? parseFloat(formData.birthLength) : null
+      };
+
+      const response = await api.put(`/health/patients/${selectedPatient.id}`, updateData);
+
+      // Update the local state with the response
+      setPatients(patients.map(p =>
+        p.id === selectedPatient.id ? { ...p, ...response.data.patient } : p
+      ));
+
       toast.success('Patient updated successfully');
       setShowAddDialog(false);
       resetForm();
       setIsEditing(false);
       setSelectedPatient(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update patient:', error);
-      toast.error('Failed to update patient');
+      toast.error(error.response?.data?.error || 'Failed to update patient');
     }
   };
 
@@ -477,6 +493,15 @@ export default function PatientManagement() {
                           />
                         </div>
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="emergencyContactName">Emergency Contact Name</Label>
+                        <Input
+                          id="emergencyContactName"
+                          value={formData.emergencyContactName}
+                          onChange={(e) => setFormData({...formData, emergencyContactName: e.target.value})}
+                          placeholder="Name of the person to contact in emergency"
+                        />
+                      </div>
                     </>
                   )}
 
@@ -713,6 +738,15 @@ export default function PatientManagement() {
                           <p className="text-sm text-green-800">{selectedPatient.emergencyContact}</p>
                         </div>
                       </div>
+                      {selectedPatient.emergencyContactName && (
+                        <div className="flex items-center gap-3">
+                          <Users className="h-4 w-4 text-green-600" />
+                          <div>
+                            <Label className="text-sm font-medium text-green-900">Emergency Contact Name</Label>
+                            <p className="text-sm text-green-800">{selectedPatient.emergencyContactName}</p>
+                          </div>
+                        </div>
+                      )}
                       {selectedPatient.guardianName && (
                         <div className="flex items-center gap-3">
                           <Users className="h-4 w-4 text-green-600" />

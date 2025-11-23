@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Student {
   id: string;
@@ -125,7 +127,7 @@ export default function AttendanceTracking() {
     try {
       const currentTime = new Date();
       const timeString = currentTime.toTimeString().slice(0, 5); // HH:MM format
-      
+
       await api.post('/daycare/attendance', {
         studentId,
         attendanceDate: selectedDate,
@@ -134,7 +136,22 @@ export default function AttendanceTracking() {
       });
 
       toast.success('Attendance marked!');
-      fetchAttendance();
+
+      // Update the records state directly to immediately reflect the change
+      const student = students.find(s => s.id === studentId);
+      if (student) {
+        const newRecord: AttendanceRecord = {
+          id: `temp-${Date.now()}`, // Temporary ID until we refetch
+          studentId,
+          student,
+          attendanceDate: selectedDate,
+          status,
+          timeIn: status === 'PRESENT' || status === 'LATE' ? new Date(`${selectedDate}T${timeString}`) : undefined,
+          recordedBy: user.id || 'current-user'
+        };
+
+        setRecords(prev => [...prev, newRecord]);
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to mark attendance');
     }
@@ -180,6 +197,118 @@ export default function AttendanceTracking() {
     late: records.filter(r => r.status === 'LATE').length
   };
 
+  // Generate attendance report PDF with morning/afternoon sections
+  const generateAttendancePDF = async () => {
+    try {
+      // First fetch the latest student data with shift information
+      const studentsResponse = await api.get('/daycare/students');
+      const allStudents = studentsResponse.data.students || [];
+
+      const doc = new jsPDF();
+
+      // Add title
+      doc.setFontSize(18);
+      doc.text(`Attendance Report - ${new Date(selectedDate).toLocaleDateString()}`, 14, 20);
+
+      // Add date
+      doc.setFontSize(12);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+
+      // Create a list of students with their attendance status and shift
+      const allStudentsWithAttendance = allStudents.map(student => {
+        const record = records.find(r => r.studentId === student.id && r.attendanceDate === selectedDate);
+        return {
+          name: `${student.firstName} ${student.lastName}`,
+          status: record?.status || 'ABSENT',
+          timeIn: record?.timeIn ? new Date(record.timeIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-',
+          remarks: record?.remarks || record?.notes || '-',
+          shift: student.shift || 'unassigned'
+        };
+      });
+
+      // Split into morning and afternoon based on shift assignments
+      const morningStudents = allStudentsWithAttendance.filter(s => s.shift === 'morning');
+      const afternoonStudents = allStudentsWithAttendance.filter(s => s.shift === 'afternoon');
+      const unassignedStudents = allStudentsWithAttendance.filter(s => s.shift === 'unassigned');
+
+      // Add morning section
+      doc.setFontSize(14);
+      doc.text('Morning Shift', 14, 40);
+
+      if (morningStudents.length > 0) {
+        const morningHeaders = [['Name', 'Status', 'Time In', 'Remarks']];
+        const morningData = morningStudents.map(s => [s.name, s.status, s.timeIn, s.remarks]);
+
+        autoTable(doc, {
+          head: morningHeaders,
+          body: morningData,
+          startY: 45,
+          styles: { fontSize: 10 },
+          headStyles: { fillColor: [41, 100, 51] } // Green color from the theme
+        });
+      } else {
+        doc.text('No students assigned to morning shift', 14, 50);
+      }
+
+      // Calculate next Y position after morning table
+      let nextY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 10 : 100;
+
+      // Add afternoon section
+      doc.setFontSize(14);
+      doc.text('Afternoon Shift', 14, nextY);
+
+      if (afternoonStudents.length > 0) {
+        const afternoonHeaders = [['Name', 'Status', 'Time In', 'Remarks']];
+        const afternoonData = afternoonStudents.map(s => [s.name, s.status, s.timeIn, s.remarks]);
+
+        autoTable(doc, {
+          head: afternoonHeaders,
+          body: afternoonData,
+          startY: nextY + 5,
+          styles: { fontSize: 10 },
+          headStyles: { fillColor: [41, 100, 51] } // Green color from the theme
+        });
+      } else {
+        doc.text('No students assigned to afternoon shift', 14, nextY + 5);
+      }
+
+      // Add unassigned section if there are any
+      if (unassignedStudents.length > 0) {
+        nextY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 10 : nextY + 40;
+        doc.setFontSize(14);
+        doc.text('Unassigned Students', 14, nextY);
+
+        const unassignedHeaders = [['Name', 'Status', 'Time In', 'Remarks']];
+        const unassignedData = unassignedStudents.map(s => [s.name, s.status, s.timeIn, s.remarks]);
+
+        autoTable(doc, {
+          head: unassignedHeaders,
+          body: unassignedData,
+          startY: nextY + 5,
+          styles: { fontSize: 10 },
+          headStyles: { fillColor: [41, 100, 51] } // Green color from the theme
+        });
+      }
+
+      // Add summary statistics
+      const summaryY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 15 : nextY + 40;
+      doc.setFontSize(12);
+      doc.text(`Summary:`, 14, summaryY);
+      doc.text(`Total Students: ${todayStats.total}`, 14, summaryY + 8);
+      doc.text(`Present: ${todayStats.present}`, 14, summaryY + 16);
+      doc.text(`Absent: ${todayStats.absent}`, 14, summaryY + 24);
+      doc.text(`Late: ${todayStats.late}`, 14, summaryY + 32);
+
+      // Save the PDF
+      doc.save(`attendance-report-${selectedDate}.pdf`);
+
+      toast.success('Attendance report generated successfully!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate attendance report');
+    }
+  };
+
   return (
     <DashboardLayout currentPage="/daycare/attendance">
       <div className="space-y-6">
@@ -197,6 +326,9 @@ export default function AttendanceTracking() {
             </Button>
             <Button onClick={() => setShowDialog(true)}>
               Mark Attendance
+            </Button>
+            <Button onClick={generateAttendancePDF}>
+              Generate PDF Report
             </Button>
           </div>
         </div>
@@ -253,9 +385,9 @@ export default function AttendanceTracking() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {students.map((student) => {
-                  const record = getStudentRecord(student.id);
-                  return (
+                {students
+                  .filter(student => !isStudentMarked(student.id)) // Only show unmarked students
+                  .map((student) => (
                     <div key={student.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium">
@@ -265,47 +397,72 @@ export default function AttendanceTracking() {
                           {new Date().getFullYear() - new Date(student.dateOfBirth).getFullYear()} years old
                         </p>
                       </div>
-                      {record ? (
-                        <div className="flex items-center gap-2">
-                          {getStatusBadge(record.status)}
-                          {record.timeIn && (
-                            <span className="text-sm text-gray-600">In: {new Date(record.timeIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditRecord(record)}
-                          >
-                            Edit
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleQuickMark(student.id, 'PRESENT')}
-                          >
-                            Present
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleQuickMark(student.id, 'LATE')}
-                          >
-                            Late
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleQuickMark(student.id, 'ABSENT')}
-                          >
-                            Absent
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleQuickMark(student.id, 'PRESENT')}
+                        >
+                          Present
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleQuickMark(student.id, 'LATE')}
+                        >
+                          Late
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleQuickMark(student.id, 'ABSENT')}
+                        >
+                          Absent
+                        </Button>
+                      </div>
                     </div>
-                  );
-                })}
+                  ))}
+
+                {/* Show already marked students separately */}
+                {students.filter(student => isStudentMarked(student.id)).length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="font-medium mb-2 text-gray-500">Already Marked</h3>
+                    {students
+                      .filter(student => isStudentMarked(student.id))
+                      .map((student) => {
+                        const record = getStudentRecord(student.id);
+                        return (
+                          <div key={`marked-${student.id}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border m-1">
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-700">
+                                {student.firstName} {student.lastName}
+                              </p>
+                            </div>
+                            {record && (
+                              <div className="flex items-center gap-2">
+                                {getStatusBadge(record.status)}
+                                {record.timeIn && (
+                                  <span className="text-sm text-gray-600">In: {new Date(record.timeIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditRecord(record)}
+                                >
+                                  Edit
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+
+                {students.filter(student => !isStudentMarked(student.id)).length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    All students have been marked for today
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

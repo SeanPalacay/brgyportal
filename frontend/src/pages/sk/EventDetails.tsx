@@ -18,6 +18,21 @@ interface EventRegistration {
     firstName: string;
     lastName: string;
     email: string;
+    contactNumber?: string;
+  };
+}
+
+interface AttendanceRecord {
+  id: string;
+  eventId: string;
+  userId: string;
+  attendedAt: string;
+  remarks?: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
   };
 }
 
@@ -26,11 +41,18 @@ export default function EventDetails() {
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showMarkAttendance, setShowMarkAttendance] = useState(false);
+  const [markAttendanceData, setMarkAttendanceData] = useState({
+    userId: '',
+    remarks: ''
+  });
 
   useEffect(() => {
     if (id) {
       fetchEvent();
+      fetchAttendance();
     }
   }, [id]);
 
@@ -46,6 +68,39 @@ export default function EventDetails() {
       console.error('Failed to fetch event data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAttendance = async () => {
+    try {
+      const response = await api.get(`/events/${id}/attendance`);
+      setAttendance(response.data.attendance || []);
+    } catch (error) {
+      console.error('Failed to fetch attendance');
+    }
+  };
+
+  const markAttendance = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Check if we've reached the maximum of 100 attendees
+    if (attendance.length >= 100) {
+      alert('Maximum of 100 attendees reached for this event.');
+      return;
+    }
+
+    try {
+      await api.post('/events/attendance', {
+        eventId: id,
+        userId: markAttendanceData.userId,
+        remarks: markAttendanceData.remarks
+      });
+
+      setMarkAttendanceData({ userId: '', remarks: '' });
+      setShowMarkAttendance(false);
+      fetchAttendance(); // Refresh the attendance list
+    } catch (error) {
+      console.error('Failed to mark attendance', error);
     }
   };
 
@@ -154,9 +209,15 @@ export default function EventDetails() {
         {/* Approved Participants */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5" />
-              Approved Participants ({registrations.length})
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-5 w-5" />
+                Approved Participants ({registrations.length})
+              </div>
+              <Button onClick={() => setShowMarkAttendance(true)}>
+                <UserCheck className="h-4 w-4 mr-2" />
+                Mark Attendance
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -166,30 +227,109 @@ export default function EventDetails() {
               </p>
             ) : (
               <div className="space-y-3">
-                {registrations.map((registration) => (
-                  <div key={registration.id} className="flex items-center justify-between p-3 border rounded-lg">
+                {registrations.map((registration) => {
+                  const hasAttended = attendance.some(a => a.userId === registration.user.id);
+                  return (
+                    <div
+                      key={registration.id}
+                      className={`flex items-center justify-between p-3 border rounded-lg ${
+                        hasAttended ? 'bg-green-50 border-green-200' : 'bg-muted/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          hasAttended ? 'bg-green-100' : 'bg-primary/10'
+                        }`}>
+                          <span className={`text-sm font-medium ${
+                            hasAttended ? 'text-green-800' : 'text-primary'
+                          }`}>
+                            {registration.user.firstName.charAt(0)}{registration.user.lastName.charAt(0)}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            {registration.user.firstName} {registration.user.lastName}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {registration.user.email}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        {hasAttended ? (
+                          <Badge variant="default" className="bg-green-600">
+                            Attended
+                          </Badge>
+                        ) : attendance.length >= 100 ? (
+                          <span className="text-sm text-muted-foreground">Limit reached</span>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setMarkAttendanceData({
+                                userId: registration.user.id,
+                                remarks: ''
+                              });
+                              setShowMarkAttendance(true);
+                            }}
+                          >
+                            Mark Attended
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Attendance Records */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5" />
+              Attendance Records ({attendance.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {attendance.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">
+                No attendance records marked yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {attendance.map((record) => (
+                  <div key={record.id} className="flex items-center justify-between p-3 border rounded-lg bg-green-50">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-primary">
-                          {registration.user.firstName.charAt(0)}{registration.user.lastName.charAt(0)}
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-green-800">
+                          {record.user?.firstName?.charAt(0)}{record.user?.lastName?.charAt(0)}
                         </span>
                       </div>
                       <div>
                         <p className="font-medium">
-                          {registration.user.firstName} {registration.user.lastName}
+                          {record.user?.firstName} {record.user?.lastName}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {registration.user.email}
+                          {record.user?.email}
                         </p>
+                        {record.remarks && (
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium">Remarks:</span> {record.remarks}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <Badge variant="default">Approved</Badge>
-                      {registration.confirmedAt && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Confirmed {new Date(registration.confirmedAt).toLocaleDateString()}
-                        </p>
-                      )}
+                      <Badge variant="default" className="bg-green-600">
+                        Attended
+                      </Badge>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(record.attendedAt).toLocaleString()}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -199,5 +339,59 @@ export default function EventDetails() {
         </Card>
       </div>
     </DashboardLayout>
+
+    {/* Mark Attendance Dialog */}
+    <>
+      {showMarkAttendance && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold mb-4">Mark Attendance</h3>
+
+            <form onSubmit={markAttendance}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Select Participant</label>
+                <select
+                  value={markAttendanceData.userId}
+                  onChange={(e) => setMarkAttendanceData({...markAttendanceData, userId: e.target.value})}
+                  className="w-full p-2 border rounded-md"
+                  required
+                >
+                  <option value="">Choose a participant...</option>
+                  {attendance.length < 100 && registrations
+                    .filter(reg => !attendance.some(att => att.userId === reg.user.id))
+                    .map(reg => (
+                      <option key={reg.user.id} value={reg.user.id}>
+                        {reg.user.firstName} {reg.user.lastName}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Remarks (Optional)</label>
+                <textarea
+                  value={markAttendanceData.remarks}
+                  onChange={(e) => setMarkAttendanceData({...markAttendanceData, remarks: e.target.value})}
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  placeholder="Any additional notes..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowMarkAttendance(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Mark Attended</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
