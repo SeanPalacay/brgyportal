@@ -316,75 +316,48 @@ export default function HealthRecords() {
                   const statusMatch = filterStatus === 'all' || status === filterStatus;
                   return patientMatch && statusMatch;
                 }).map((record) => (
-                  <div key={record.id} className="border p-4 rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
+                  <div key={record.id} className="border p-4 rounded-lg flex items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
                         {!isPatient && (
-                          <h3 className="font-semibold">
+                          <span className="text-sm font-semibold text-gray-900">
                             {record.patient?.firstName} {record.patient?.lastName}
-                          </h3>
+                          </span>
                         )}
-                        <p className="text-sm text-gray-600 mt-1">
-                          Date Given: {new Date(record.dateGiven).toLocaleDateString()}
-                        </p>
-                        <p className="text-sm mt-2">
-                          <span className="font-medium">Vaccine:</span> {record.vaccineName} ({record.vaccineType})
-                        </p>
-                        {record.ageAtVaccination && (
-                          <p className="text-sm">
-                            <span className="font-medium">Age at Vaccination:</span> {record.ageAtVaccination}
-                          </p>
-                        )}
-                        {record.dosage && (
-                          <p className="text-sm">
-                            <span className="font-medium">Dosage:</span> {record.dosage}
-                          </p>
-                        )}
+                        <Badge variant="outline">{record.vaccineName}</Badge>
                         {record.doseNumber && (
-                          <p className="text-sm">
-                            <span className="font-medium">Dose Number:</span> {record.doseNumber}
-                          </p>
+                          <Badge variant="secondary">Dose {record.doseNumber}</Badge>
                         )}
-                        <p className="text-sm">
-                          <span className="font-medium">Administered By:</span> {record.administeredBy}
-                        </p>
-                        {record.siteOfAdministration && (
-                          <p className="text-sm">
-                            <span className="font-medium">Site:</span> {record.siteOfAdministration}
-                          </p>
-                        )}
+                        <Badge variant={getRecordStatus(record) === 'completed' ? 'secondary' : 'outline'}>
+                          {getRecordStatus(record).replace('-', ' ')}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Given {new Date(record.dateGiven).toLocaleDateString()}
                         {record.nextDueDate && (
-                          <p className="text-sm">
-                            <span className="font-medium">Next Due:</span> {new Date(record.nextDueDate).toLocaleDateString()}
-                          </p>
-                        )}
-                        {record.adverseReactions && (
-                          <p className="text-sm mt-2 text-orange-600">
-                            <span className="font-medium">Adverse Reactions:</span> {record.adverseReactions}
-                          </p>
-                        )}
-                        {record.notes && (
-                          <p className="text-sm mt-2">
-                            <span className="font-medium">Notes:</span> {record.notes}
-                          </p>
+                          <> • Next due {new Date(record.nextDueDate).toLocaleDateString()}</>
                         )}
                       </div>
-                      <div className="flex flex-col gap-2">
-                        <Badge variant="outline">Immunization</Badge>
-                        {record.nextDueDate && new Date(record.nextDueDate) > new Date() && (
-                          <Badge variant="secondary">Next Due</Badge>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedRecord(record);
-                            setShowDetailsDialog(true);
-                          }}
-                        >
-                          View Details
-                        </Button>
-                      </div>
+                      {record.notes && (
+                        <div className="text-xs text-muted-foreground line-clamp-1">
+                          Notes: {record.notes}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {record.siteOfAdministration && (
+                        <Badge variant="outline">{record.siteOfAdministration}</Badge>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedRecord(record);
+                          setShowDetailsDialog(true);
+                        }}
+                      >
+                        View
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -402,39 +375,52 @@ export default function HealthRecords() {
           {cards.length === 0 ? (
             <p className="text-muted-foreground">No immunization cards found.</p>
           ) : (
-            <div className="space-y-3">
-              {cards.map((card) => (
-                <Card key={card.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">
-                      {card.patient?.firstName} {card.patient?.lastName}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm text-muted-foreground mb-2">
-                      Family # {card.cardData.childInformation?.familyNumber}
-                    </div>
-                    <div className="space-y-2">
-                      {card.cardData.vaccinationSchedule.map((vaccine) => (
-                        <div key={vaccine.vaccine} className="border rounded p-3">
-                          <div className="font-semibold mb-2">{vaccine.vaccine}</div>
-                          <div className="grid md:grid-cols-2 gap-2 text-sm">
-                            {vaccine.doses.map((dose) => (
-                              <div key={dose.number} className="flex items-center justify-between">
-                                <span>Dose {dose.number} ({dose.timing})</span>
-                                <span>
-                                  Due {dose.dueDate ? new Date(dueDateSafe(dose.dueDate)).toLocaleDateString() : '—'}
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {cards.map((card) => {
+                const totalDoses = card.cardData.vaccinationSchedule.reduce((acc, v) => acc + v.doses.length, 0);
+                const given = card.cardData.vaccinationSchedule.reduce(
+                  (acc, v) => acc + v.doses.filter(d => d.dateGiven).length,
+                  0
+                );
+
+                return (
+                  <Card key={card.id} className="h-full">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        <span>{card.patient?.firstName} {card.patient?.lastName}</span>
+                        <Badge variant="outline">Family #{card.cardData.childInformation?.familyNumber}</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-3 text-sm">
+                        <div className="font-semibold">{given}/{totalDoses}</div>
+                        <span className="text-muted-foreground">doses completed</span>
+                      </div>
+                      <div className="space-y-2">
+                        {card.cardData.vaccinationSchedule.map((vaccine) => (
+                          <div key={vaccine.vaccine} className="border rounded p-2">
+                            <div className="flex items-center justify-between text-sm font-semibold">
+                              <span>{vaccine.vaccine}</span>
+                              <Badge variant="outline">{vaccine.doses.length} dose(s)</Badge>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                              {vaccine.doses.map((dose) => (
+                                <span
+                                  key={dose.number}
+                                  className="px-2 py-1 rounded bg-slate-50 border text-slate-700"
+                                >
+                                  #{dose.number} {dose.timing} • Due {dose.dueDate ? new Date(dueDateSafe(dose.dueDate)).toLocaleDateString() : '—'}
                                   {dose.dateGiven ? ` • Given ${new Date(dose.dateGiven).toLocaleDateString()}` : ''}
                                 </span>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
