@@ -51,6 +51,7 @@ export default function EventRegistration() {
   const [filterEvent, setFilterEvent] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [eventStatusFilter, setEventStatusFilter] = useState('all'); // New filter for event status (upcoming/ongoing/completed)
   const [allRegistrations, setAllRegistrations] = useState<Registration[]>([]);
   const [formData, setFormData] = useState({
     contactNumber: user?.contactNumber || '',
@@ -78,6 +79,16 @@ export default function EventRegistration() {
   useEffect(() => {
     fetchEvents();
   }, []);
+
+  // Auto-populate phone number from user profile when dialog opens
+  useEffect(() => {
+    if (showRegisterDialog && user?.contactNumber) {
+      setFormData(prev => ({
+        ...prev,
+        contactNumber: user.contactNumber || ''
+      }));
+    }
+  }, [showRegisterDialog, user?.contactNumber]);
 
   useEffect(() => {
     if (events.length > 0) {
@@ -241,6 +252,35 @@ export default function EventRegistration() {
     return new Date(eventDate) < new Date();
   };
 
+  const getEventStatus = (event: Event): 'upcoming' | 'ongoing' | 'completed' => {
+    const now = new Date();
+    const eventDate = new Date(event.eventDate);
+    const eventStartDateTime = new Date(`${event.eventDate}T${event.startTime}`);
+    const eventEndDateTime = event.endTime ? new Date(`${event.eventDate}T${event.endTime}`) : null;
+
+    // If event date is in the future
+    if (eventDate > now) {
+      return 'upcoming';
+    }
+
+    // If event is today, check time
+    if (eventDate.toDateString() === now.toDateString()) {
+      // If we have end time and current time is past end time
+      if (eventEndDateTime && now > eventEndDateTime) {
+        return 'completed';
+      }
+      // If current time is past start time but before end time (or no end time)
+      if (now > eventStartDateTime) {
+        return 'ongoing';
+      }
+      // Current time is before start time
+      return 'upcoming';
+    }
+
+    // Event date is in the past
+    return 'completed';
+  };
+
   const myRegistrations = user?.id ? registrations.filter(r => r.userId === user.id) : [];
   
   // Use all registrations for staff, personal registrations for others
@@ -265,9 +305,38 @@ export default function EventRegistration() {
     filteredRegistrations = filteredRegistrations.filter(r => r.status === statusFilter);
   }
 
+  // Filter out cancelled events and apply event status filter
+  let displayedEvents = events.filter(e => e.status !== 'CANCELLED');
+
+  // Apply event status filter
+  if (eventStatusFilter !== 'all') {
+    displayedEvents = displayedEvents.filter(e => getEventStatus(e) === eventStatusFilter);
+  }
+
+  // Sort events: future events first (ascending by date), then past events (descending by date)
+  const sortedEvents = displayedEvents.sort((a, b) => {
+    const aDate = new Date(a.eventDate);
+    const bDate = new Date(b.eventDate);
+    const now = new Date();
+
+    const aIsFuture = aDate >= now;
+    const bIsFuture = bDate >= now;
+
+    // If both are future or both are past, sort by date
+    if (aIsFuture && bIsFuture) {
+      return aDate.getTime() - bDate.getTime(); // Ascending (earliest first)
+    }
+    if (!aIsFuture && !bIsFuture) {
+      return bDate.getTime() - aDate.getTime(); // Descending (most recent first)
+    }
+
+    // Future events come before past events
+    return aIsFuture ? -1 : 1;
+  });
+
   const stats = {
-    totalEvents: events.length,
-    upcomingEvents: events.filter(e => !isEventPast(e.eventDate)).length,
+    totalEvents: events.filter(e => e.status !== 'CANCELLED').length,
+    upcomingEvents: events.filter(e => e.status !== 'CANCELLED' && getEventStatus(e) === 'upcoming').length,
     myRegistrations: myRegistrations.length,
     pendingApprovals: isStaff ? allRegistrations.filter(r => r.status === 'PENDING').length : 0,
     totalRegistrations: isStaff ? allRegistrations.length : myRegistrations.length
@@ -328,31 +397,49 @@ export default function EventRegistration() {
 
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Available Events</CardTitle>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <CardTitle>Available Events</CardTitle>
+              <Select value={eventStatusFilter} onValueChange={setEventStatusFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Events</SelectItem>
+                  <SelectItem value="upcoming">Upcoming</SelectItem>
+                  <SelectItem value="ongoing">Ongoing</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
               <p>Loading events...</p>
-            ) : events.length === 0 ? (
+            ) : sortedEvents.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No events available.</p>
+                <p className="text-muted-foreground">
+                  {events.filter(e => e.status !== 'CANCELLED').length === 0
+                    ? 'No events available.'
+                    : 'No events match the selected filter.'}
+                </p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {events.map((event) => {
+                {sortedEvents.map((event) => {
                   const isRegistered = myRegistrations.some(r => r.eventId === event.id);
                   const isFull = isEventFull(event);
                   const isPast = isEventPast(event.eventDate);
-                  const isCancelled = event.status === 'CANCELLED';
+                  const eventStatus = getEventStatus(event);
 
                   return (
                     <Card key={event.id} className="border">
                       <CardContent className="pt-6">
                         <div className="flex justify-between items-start mb-2">
                           <h3 className="font-semibold">{event.title}</h3>
-                          {isCancelled && <Badge variant="destructive">Cancelled</Badge>}
-                          {isPast && !isCancelled && <Badge variant="secondary">Past</Badge>}
-                          {isFull && !isPast && !isCancelled && <Badge variant="destructive">Full</Badge>}
+                          {eventStatus === 'upcoming' && <Badge variant="default">Upcoming</Badge>}
+                          {eventStatus === 'ongoing' && <Badge className="bg-green-600">Ongoing</Badge>}
+                          {eventStatus === 'completed' && <Badge variant="secondary">Completed</Badge>}
+                          {isFull && eventStatus === 'upcoming' && <Badge variant="destructive" className="ml-1">Full</Badge>}
                         </div>
                         <p className="text-sm text-gray-600 mb-2">
                           📅 {new Date(event.eventDate).toLocaleDateString()}
@@ -383,13 +470,13 @@ export default function EventRegistration() {
                         ) : (
                           <Button
                             className="w-full"
-                            disabled={isFull || isPast || isCancelled}
+                            disabled={isFull || eventStatus === 'completed'}
                             onClick={() => {
                               setSelectedEvent(event);
                               setShowRegisterDialog(true);
                             }}
                           >
-                            {isCancelled ? 'Event Cancelled' : isPast ? 'Event Ended' : isFull ? 'Event Full' : 'Register Now'}
+                            {eventStatus === 'completed' ? 'Event Ended' : isFull ? 'Event Full' : 'Register Now'}
                           </Button>
                         )}
                       </CardContent>
@@ -573,44 +660,13 @@ export default function EventRegistration() {
                 <label className="text-sm font-medium">Contact Number *</label>
                 <Input
                   value={formData.contactNumber}
-                  onChange={(e) => {
-                    let value = e.target.value;
-                    // Remove any non-digit characters
-                    value = value.replace(/\D/g, '');
-
-                    // Handle different input formats
-                    if (value.startsWith('639')) {
-                      // Convert +639XXXXXXXXX to 09XXXXXXXXX
-                      value = '0' + value.substring(2);
-                    } else if (value.startsWith('9') && value.length === 10) {
-                      // Convert 9XXXXXXXXX to 09XXXXXXXXX
-                      value = '0' + value;
-                    }
-
-                    // Ensure it starts with 09 and limit to 11 digits
-                    if (value.length > 0 && !value.startsWith('09')) {
-                      if (value.startsWith('0')) {
-                        value = '09' + value.substring(1);
-                      } else {
-                        value = '09' + value;
-                      }
-                    }
-
-                    // Limit to 11 digits
-                    if (value.length > 11) {
-                      value = value.substring(0, 11);
-                    }
-
-                    setFormData({...formData, contactNumber: value});
-                  }}
                   placeholder="09XXXXXXXXX"
-                  maxLength={11}
-                  pattern="09[0-9]{9}"
                   required
-                  readOnly // Make the field read-only to prevent manual editing
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Auto-populated from your profile: {user?.contactNumber || 'Not set in profile'}
+                  Auto-populated from your account profile
                 </p>
               </div>
 
@@ -623,7 +679,6 @@ export default function EventRegistration() {
                   placeholder="Any special requirements or questions"
                 />
               </div>
-
 
               <div className="flex gap-2 justify-end pt-4">
                 <Button
