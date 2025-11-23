@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Patient } from '@/types';
+import { AlertTriangle, CheckCircle, Clock, Eye } from 'lucide-react';
 
 interface ImmunizationCard {
   id: string;
@@ -62,12 +63,16 @@ export default function HealthRecords() {
   const [filterPatient, setFilterPatient] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedRecord, setSelectedRecord] = useState<ImmunizationRecord | null>(null);
+  const [selectedCard, setSelectedCard] = useState<ImmunizationCard | null>(null);
+  const [cardDialogOpen, setCardDialogOpen] = useState(false);
+  const [cardDraft, setCardDraft] = useState<ImmunizationCard | null>(null);
 
   // Get user role to determine interface
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userRoles = user.roles || [user.role];
   const isPatient = userRoles.includes('PARENT_RESIDENT');
   const isHealthWorker = userRoles.some((role: string) => ['BHW', 'BHW_COORDINATOR', 'SYSTEM_ADMIN'].includes(role));
+  const isAdmin = userRoles.includes('SYSTEM_ADMIN');
   const [formData, setFormData] = useState({
     vaccineName: '',
     vaccineType: '',
@@ -190,6 +195,54 @@ export default function HealthRecords() {
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create immunization record');
     }
+  };
+
+  const updateDoseField = (vaccineIdx: number, doseIdx: number, field: 'dateGiven' | 'remarks', value: string) => {
+    setCardDraft((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      const dose = next.cardData.vaccinationSchedule[vaccineIdx].doses[doseIdx];
+      dose[field] = value || null;
+      return next;
+    });
+  };
+
+  const saveCardEdits = async () => {
+    if (!selectedCard || !cardDraft) return;
+    try {
+      await api.put(`/health/immunization-cards/${selectedCard.id}`, {
+        cardData: cardDraft.cardData
+      });
+      // Refresh list with updated card
+      setCards((prev) => prev.map((c) => (c.id === selectedCard.id ? cardDraft : c)));
+      toast.success('Immunization card updated');
+      setCardDialogOpen(false);
+      setSelectedCard(null);
+      setCardDraft(null);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to update immunization card');
+    }
+  };
+
+  const getDoseStatus = (dose: { dueDate?: string; dateGiven?: string | null }) => {
+    if (dose.dateGiven) return 'completed';
+    if (!dose.dueDate) return 'pending';
+    const due = new Date(dueDateSafe(dose.dueDate));
+    return due < new Date() ? 'overdue' : 'pending';
+  };
+
+  const ProgressIcon = ({ given, total }: { given: number; total: number }) => {
+    const all = given === total;
+    const none = given === 0;
+    if (all) return <CheckCircle className="h-4 w-4 text-green-600" />;
+    if (none) return <Clock className="h-4 w-4 text-yellow-600" />;
+    return <Clock className="h-4 w-4 text-blue-600" />;
+  };
+
+  const StatusIcon = ({ status }: { status: string }) => {
+    if (status === 'completed') return <CheckCircle className="h-4 w-4 text-green-600" />;
+    if (status === 'overdue') return <AlertTriangle className="h-4 w-4 text-red-600" />;
+    return <Clock className="h-4 w-4 text-yellow-600" />;
   };
 
   return (
@@ -375,47 +428,45 @@ export default function HealthRecords() {
           {cards.length === 0 ? (
             <p className="text-muted-foreground">No immunization cards found.</p>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="space-y-3">
               {cards.map((card) => {
                 const totalDoses = card.cardData.vaccinationSchedule.reduce((acc, v) => acc + v.doses.length, 0);
                 const given = card.cardData.vaccinationSchedule.reduce(
                   (acc, v) => acc + v.doses.filter(d => d.dateGiven).length,
                   0
                 );
+                const completion = `${given}/${totalDoses} doses`;
 
                 return (
                   <Card key={card.id} className="h-full">
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center justify-between">
-                        <span>{card.patient?.firstName} {card.patient?.lastName}</span>
-                        <Badge variant="outline">Family #{card.cardData.childInformation?.familyNumber}</Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center gap-3 text-sm">
-                        <div className="font-semibold">{given}/{totalDoses}</div>
-                        <span className="text-muted-foreground">doses completed</span>
+                    <CardContent className="flex items-center justify-between gap-4 py-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-semibold">
+                            {card.patient?.firstName} {card.patient?.lastName}
+                          </span>
+                          <Badge variant="outline">Family #{card.cardData.childInformation?.familyNumber}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <ProgressIcon given={given} total={totalDoses} />
+                          <span>{completion}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {card.cardData.vaccinationSchedule.length} vaccine types • tap View for details
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        {card.cardData.vaccinationSchedule.map((vaccine) => (
-                          <div key={vaccine.vaccine} className="border rounded p-2">
-                            <div className="flex items-center justify-between text-sm font-semibold">
-                              <span>{vaccine.vaccine}</span>
-                              <Badge variant="outline">{vaccine.doses.length} dose(s)</Badge>
-                            </div>
-                            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                              {vaccine.doses.map((dose) => (
-                                <span
-                                  key={dose.number}
-                                  className="px-2 py-1 rounded bg-slate-50 border text-slate-700"
-                                >
-                                  #{dose.number} {dose.timing} • Due {dose.dueDate ? new Date(dueDateSafe(dose.dueDate)).toLocaleDateString() : '—'}
-                                  {dose.dateGiven ? ` • Given ${new Date(dose.dateGiven).toLocaleDateString()}` : ''}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedCard(card);
+                            setCardDraft(card);
+                            setCardDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-1" /> View Details
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -424,6 +475,100 @@ export default function HealthRecords() {
             </div>
           )}
         </div>
+
+        {/* Infant card details modal for admin edits */}
+        <Dialog open={cardDialogOpen} onOpenChange={(open) => { setCardDialogOpen(open); if (!open) { setSelectedCard(null); setCardDraft(null); } }}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Infant Immunization Card</DialogTitle>
+            </DialogHeader>
+            {cardDraft && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-lg">
+                      {cardDraft.patient?.firstName} {cardDraft.patient?.lastName}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Family #{cardDraft.cardData.childInformation?.familyNumber}</div>
+                  </div>
+                  <Badge variant="secondary">
+                    {cardDraft.cardData.vaccinationSchedule.reduce((acc, v) => acc + v.doses.filter(d => d.dateGiven).length, 0)} /
+                    {cardDraft.cardData.vaccinationSchedule.reduce((acc, v) => acc + v.doses.length, 0)} completed
+                  </Badge>
+                </div>
+
+                <div className="space-y-3">
+                  {cardDraft.cardData.vaccinationSchedule.map((vaccine, vIdx) => (
+                    <div key={vaccine.vaccine} className="border rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-semibold">{vaccine.vaccine}</div>
+                        <Badge variant="outline">{vaccine.doses.length} dose(s)</Badge>
+                      </div>
+                      <div className="space-y-2">
+                        {vaccine.doses.map((dose, dIdx) => {
+                          const status = getDoseStatus(dose);
+                          return (
+                            <div key={dose.number} className="flex flex-wrap items-center gap-3 rounded bg-slate-50 p-2">
+                              <div className="flex items-center gap-2 text-sm font-medium">
+                                <StatusIcon status={status} />
+                                Dose {dose.number} ({dose.timing})
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Due {dose.dueDate ? new Date(dueDateSafe(dose.dueDate)).toLocaleDateString() : '—'}
+                              </div>
+                              <div className="flex-1 min-w-[200px]">
+                                {isAdmin ? (
+                                  <Input
+                                    type="date"
+                                    value={dose.dateGiven || ''}
+                                    onChange={(e) => updateDoseField(vIdx, dIdx, 'dateGiven', e.target.value)}
+                                  />
+                                ) : (
+                                  <span className="text-sm">
+                                    {dose.dateGiven ? new Date(dose.dateGiven).toLocaleDateString() : 'Not given'}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-[200px]">
+                                {isAdmin ? (
+                                  <Input
+                                    placeholder="Remarks"
+                                    value={dose.remarks || ''}
+                                    onChange={(e) => updateDoseField(vIdx, dIdx, 'remarks', e.target.value)}
+                                  />
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">
+                                    {dose.remarks || 'No remarks'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {isAdmin && (
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => { setCardDialogOpen(false); setSelectedCard(null); }}>
+                      Close
+                    </Button>
+                    <Button onClick={saveCardEdits}>
+                      Save Changes
+                    </Button>
+                  </div>
+                )}
+                {!isAdmin && (
+                  <div className="flex justify-end">
+                    <Button variant="outline" onClick={() => setCardDialogOpen(false)}>Close</Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {isHealthWorker && (
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
