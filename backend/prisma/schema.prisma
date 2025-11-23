@@ -187,6 +187,7 @@ model Patient {
   address          String
   contactNumber    String
   emergencyContact String
+  emergencyContactName String?
   guardianName     String?
   guardianUserId   String?
   guardian         User?     @relation("GuardianUser", fields: [guardianUserId], references: [id])

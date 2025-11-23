@@ -15,6 +15,7 @@ export const createPatient = async (req: AuthRequest, res: Response) => {
     // Convert string values to appropriate types
     const processedData = {
       ...patientFields,
+      emergencyContactName: patientFields.emergencyContactName || null,
       dateOfBirth: new Date(patientFields.dateOfBirth),
       birthWeight: patientFields.birthWeight ? parseFloat(patientFields.birthWeight) : null,
       birthLength: patientFields.birthLength ? parseFloat(patientFields.birthLength) : null,
@@ -121,6 +122,10 @@ export const updatePatient = async (req: AuthRequest, res: Response) => {
     }
     if (validFields.birthLength !== undefined) {
       processedData.birthLength = validFields.birthLength ? parseFloat(validFields.birthLength) : null;
+    }
+
+    if (validFields.emergencyContactName !== undefined) {
+      processedData.emergencyContactName = validFields.emergencyContactName || null;
     }
 
     // Handle guardianUserId separately

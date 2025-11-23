@@ -403,6 +403,7 @@ async function main() {
         address: 'Purok 2',
         contactNumber: '09123456791',
         emergencyContact: '09123456792',
+        emergencyContactName: 'Rosa Martinez',
         guardianName: 'Rosa Martinez',
         guardianUserId: parentUser.id
       }
@@ -417,6 +418,7 @@ async function main() {
         address: 'Purok 3',
         contactNumber: '09123456793',
         emergencyContact: '09123456794',
+        emergencyContactName: 'Ana Garcia',
         guardianName: 'Ana Garcia'
       }
     })
