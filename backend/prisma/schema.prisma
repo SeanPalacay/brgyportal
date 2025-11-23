@@ -463,6 +463,17 @@ model Certificate {
   @@map("certificates")
 }
 
+model ImmunizationCard {
+  id         String   @id @default(cuid())
+  patientId  String   @unique
+  patient    Patient  @relation(fields: [patientId], references: [id])
+  cardData   Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("immunization_cards")
+}
+
 // ========== NOTIFICATION SYSTEM ==========
 
 model Notification {

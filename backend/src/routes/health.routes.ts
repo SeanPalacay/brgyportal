@@ -27,9 +27,12 @@ import {
   createVaccination,
   getUpcomingVaccinations,
   getImmunizationSchedule,
-  getPatientImmunizationStatus
+  getPatientImmunizationStatus,
+  getImmunizationCards,
+  createImmunizationCard,
+  updateImmunizationCard
 } from '../controllers/health.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, authorize } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -56,6 +59,9 @@ router.post('/immunization-records', authenticate, createImmunizationRecord);
 router.get('/my-immunization-records', authenticate, getMyImmunizationRecords);
 router.get('/immunization-schedule', authenticate, getImmunizationSchedule);
 router.get('/patients/:patientId/immunization-status', authenticate, getPatientImmunizationStatus);
+router.get('/immunization-cards', authenticate, getImmunizationCards);
+router.post('/immunization-cards', authenticate, createImmunizationCard);
+router.put('/immunization-cards/:id', authenticate, authorize('SYSTEM_ADMIN'), updateImmunizationCard);
 
 // ========== HEALTH RECORDS (Legacy) ==========
 router.get('/health-records', authenticate, getHealthRecords);

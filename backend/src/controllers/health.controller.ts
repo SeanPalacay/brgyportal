@@ -3,6 +3,143 @@ import { AuthRequest } from '../middleware/auth.middleware';
 import prisma from '../utils/prisma';
 import { generateCertificatePDF } from '../utils/certificateGenerator';
 
+// Infant immunization schedule template (Philippine schedule)
+const INFANT_VACCINE_SCHEDULE = [
+  {
+    vaccine: 'BCG Vaccine',
+    doses: [{ number: 1, timing: 'At birth' }]
+  },
+  {
+    vaccine: 'Hepatitis B Vaccine',
+    doses: [{ number: 1, timing: 'At birth' }]
+  },
+  {
+    vaccine: 'Pentavalent Vaccine (DPT-Hep B-HIB)',
+    doses: [
+      { number: 1, timing: '1 months' },
+      { number: 2, timing: '2 months' },
+      { number: 3, timing: '3 months' }
+    ]
+  },
+  {
+    vaccine: 'Oral Polio Vaccine (OPV)',
+    doses: [
+      { number: 1, timing: '1 months' },
+      { number: 2, timing: '2 months' },
+      { number: 3, timing: '3 months' }
+    ]
+  },
+  {
+    vaccine: 'Inactivated Polio Vaccine (IPV)',
+    doses: [
+      { number: 1, timing: '3 months' },
+      { number: 2, timing: '9 months' }
+    ]
+  },
+  {
+    vaccine: 'Pneumococcal Conjugate Vaccine (PCV)',
+    doses: [
+      { number: 1, timing: '1 months' },
+      { number: 2, timing: '2 months' },
+      { number: 3, timing: '3 months' }
+    ]
+  },
+  {
+    vaccine: 'Measles, Mumps, Rubella Vaccine (MMR)',
+    doses: [
+      { number: 1, timing: '9 months' },
+      { number: 2, timing: '1 year' }
+    ]
+  }
+] as const;
+
+const isInfant = (dob: Date) => {
+  const ageInMs = Date.now() - dob.getTime();
+  const oneYearInMs = 365 * 24 * 60 * 60 * 1000;
+  return ageInMs < oneYearInMs;
+};
+
+const calculateScheduledDate = (timing: string, dob: Date) => {
+  const base = new Date(dob);
+  switch (timing) {
+    case 'At birth':
+      return base.toISOString().split('T')[0];
+    case '1 months': {
+      const d = new Date(base);
+      d.setDate(base.getDate() + 45);
+      return d.toISOString().split('T')[0];
+    }
+    case '2 months': {
+      const d = new Date(base);
+      d.setDate(base.getDate() + 75);
+      return d.toISOString().split('T')[0];
+    }
+    case '3 months': {
+      const d = new Date(base);
+      d.setDate(base.getDate() + 105);
+      return d.toISOString().split('T')[0];
+    }
+    case '9 months': {
+      const d = new Date(base);
+      d.setMonth(base.getMonth() + 9);
+      return d.toISOString().split('T')[0];
+    }
+    case '1 year': {
+      const d = new Date(base);
+      d.setFullYear(base.getFullYear() + 1);
+      return d.toISOString().split('T')[0];
+    }
+    default:
+      return base.toISOString().split('T')[0];
+  }
+};
+
+const buildInfantImmunizationCardData = (patient: any) => {
+  const dob = new Date(patient.dateOfBirth);
+
+  return {
+    childInformation: {
+      name: `${patient.firstName} ${patient.middleName || ''} ${patient.lastName}`.trim(),
+      motherName: patient.motherName || '',
+      fatherName: patient.fatherName || '',
+      dateOfBirth: dob.toISOString().split('T')[0],
+      placeOfBirth: patient.placeOfBirth || '',
+      birthWeight: patient.birthWeight ? Number(patient.birthWeight) : null,
+      birthHeight: patient.birthLength ? Number(patient.birthLength) : null,
+      sex: patient.gender,
+      address: patient.address,
+      barangay: (patient.address || '').split(',').pop()?.trim() || '',
+      familyNumber: String(patient.id).slice(0, 8)
+    },
+    vaccinationSchedule: INFANT_VACCINE_SCHEDULE.map(vaccine => ({
+      vaccine: vaccine.vaccine,
+      doses: vaccine.doses.map(dose => ({
+        ...dose,
+        dueDate: calculateScheduledDate(dose.timing, dob),
+        dateGiven: null,
+        remarks: null
+      }))
+    }))
+  };
+};
+
+const ensureInfantImmunizationCard = async (patient: any) => {
+  if (!isInfant(new Date(patient.dateOfBirth))) {
+    return null;
+  }
+
+  const cardData = buildInfantImmunizationCardData(patient);
+
+  return prisma.immunizationCard.upsert({
+    where: { patientId: patient.id },
+    update: { cardData },
+    create: {
+      patientId: patient.id,
+      cardData
+    }
+  });
+};
+
 // ========== PATIENT MANAGEMENT ==========
 
 export const createPatient = async (req: AuthRequest, res: Response) => {
@@ -25,6 +162,13 @@ export const createPatient = async (req: AuthRequest, res: Response) => {
     const patient = await prisma.patient.create({
       data: processedData
     });
+
+    // Auto-generate infant immunization card when applicable
+    try {
+      await ensureInfantImmunizationCard(patient);
+    } catch (cardError) {
+      console.error('Auto-create infant immunization card failed:', cardError);
+    }
 
     res.status(201).json({ message: 'Patient created successfully', patient });
   } catch (error) {
@@ -494,6 +638,111 @@ export const getPatientImmunizationStatus = async (req: AuthRequest, res: Respon
   } catch (error) {
     console.error('Get patient immunization status error:', error);
     res.status(500).json({ error: 'Failed to fetch immunization status' });
+  }
+};
+
+// ========== INFANT IMMUNIZATION CARDS ==========
+
+export const getImmunizationCards = async (req: AuthRequest, res: Response) => {
+  try {
+    const { patientId } = req.query;
+    const where = patientId ? { patientId: patientId as string } : {};
+
+    const cards = await prisma.immunizationCard.findMany({
+      where,
+      include: { patient: true },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({ cards });
+  } catch (error) {
+    console.error('Get immunization cards error:', error);
+    res.status(500).json({ error: 'Failed to fetch immunization cards' });
+  }
+};
+
+export const createImmunizationCard = async (req: AuthRequest, res: Response) => {
+  try {
+    const { patientId } = req.body;
+
+    if (!patientId) {
+      return res.status(400).json({ error: 'patientId is required' });
+    }
+
+    const patient = await prisma.patient.findUnique({ where: { id: patientId } });
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    if (!isInfant(patient.dateOfBirth)) {
+      return res.status(400).json({ error: 'Immunization cards are only auto-generated for infants under 1 year old' });
+    }
+
+    const card = await ensureInfantImmunizationCard(patient);
+
+    res.status(201).json({ message: 'Immunization card created successfully', card });
+  } catch (error) {
+    console.error('Create immunization card error:', error);
+    res.status(500).json({ error: 'Failed to create immunization card' });
+  }
+};
+
+export const updateImmunizationCard = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { cardData } = req.body;
+
+    const card = await prisma.immunizationCard.findUnique({
+      where: { id },
+      include: { patient: true }
+    });
+
+    if (!card) {
+      return res.status(404).json({ error: 'Immunization card not found' });
+    }
+
+    if (!isInfant(card.patient.dateOfBirth)) {
+      return res.status(400).json({ error: 'Only infant immunization cards can be updated' });
+    }
+
+    const existingData: any = card.cardData;
+    const incomingSchedule = cardData?.vaccinationSchedule;
+
+    let updatedData = { ...existingData };
+
+    if (Array.isArray(incomingSchedule)) {
+      updatedData = {
+        ...existingData,
+        vaccinationSchedule: existingData.vaccinationSchedule.map((vaccine: any) => {
+          const incomingVaccine = incomingSchedule.find((v: any) => v.vaccine === vaccine.vaccine);
+          if (!incomingVaccine) return vaccine;
+
+          const updatedDoses = vaccine.doses.map((dose: any) => {
+            const incomingDose = incomingVaccine.doses?.find((d: any) => d.number === dose.number);
+            if (!incomingDose) return dose;
+            return {
+              ...dose,
+              // Keep calculated dueDate intact; only allow admin to edit dateGiven/remarks
+              dueDate: dose.dueDate,
+              dateGiven: incomingDose.dateGiven ?? null,
+              remarks: incomingDose.remarks ?? null
+            };
+          });
+
+          return { ...vaccine, doses: updatedDoses };
+        })
+      };
+    }
+
+    const updatedCard = await prisma.immunizationCard.update({
+      where: { id },
+      data: { cardData: updatedData }
+    });
+
+    res.json({ message: 'Immunization card updated successfully', card: updatedCard });
+  } catch (error) {
+    console.error('Update immunization card error:', error);
+    res.status(500).json({ error: 'Failed to update immunization card' });
   }
 };
 
