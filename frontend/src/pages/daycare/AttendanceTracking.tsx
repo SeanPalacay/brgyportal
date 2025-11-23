@@ -43,6 +43,7 @@ export default function AttendanceTracking() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [quickMarkMode, setQuickMarkMode] = useState(false);
   const [shiftFilter, setShiftFilter] = useState<'all' | 'morning' | 'afternoon' | 'unassigned'>('all');
+  const [studentSearch, setStudentSearch] = useState('');
   const [formData, setFormData] = useState({
     studentId: '',
     status: 'PRESENT',
@@ -209,6 +210,12 @@ export default function AttendanceTracking() {
     if (shiftFilter === 'all') return true;
     if (!shift && shiftFilter === 'unassigned') return true;
     return shift === shiftFilter;
+  };
+
+  const matchesSearch = (student: Student) => {
+    if (!studentSearch.trim()) return true;
+    const term = studentSearch.toLowerCase();
+    return `${student.firstName} ${student.lastName}`.toLowerCase().includes(term);
   };
 
   // Generate attendance report PDF with morning/afternoon sections
@@ -450,13 +457,22 @@ export default function AttendanceTracking() {
         {quickMarkMode ? (
           <Card>
             <CardHeader>
-              <CardTitle>Quick Mark - {new Date(selectedDate).toLocaleDateString()}</CardTitle>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <CardTitle>Quick Mark - {new Date(selectedDate).toLocaleDateString()}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant={shiftFilter === 'all' ? 'default' : 'outline'} onClick={() => setShiftFilter('all')}>All</Button>
+                  <Button size="sm" variant={shiftFilter === 'morning' ? 'default' : 'outline'} onClick={() => setShiftFilter('morning')}>Morning</Button>
+                  <Button size="sm" variant={shiftFilter === 'afternoon' ? 'default' : 'outline'} onClick={() => setShiftFilter('afternoon')}>Afternoon</Button>
+                  <Button size="sm" variant={shiftFilter === 'unassigned' ? 'default' : 'outline'} onClick={() => setShiftFilter('unassigned')}>Unassigned</Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 {students
-                  .filter(student => matchesShiftFilter(student.shift)) // shift filter
-                  .filter(student => !isStudentMarked(student.id)) // Only show unmarked students
+                  .filter(student => matchesShiftFilter(student.shift))
+                  .filter(student => matchesSearch(student))
+                  .filter(student => !isStudentMarked(student.id))
                   .map((student) => (
                     <div key={student.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex-1">
@@ -498,6 +514,7 @@ export default function AttendanceTracking() {
                     <h3 className="font-medium mb-2 text-gray-500">Already Marked</h3>
                     {students
                       .filter(student => matchesShiftFilter(student.shift))
+                      .filter(student => matchesSearch(student))
                       .filter(student => isStudentMarked(student.id))
                       .map((student) => {
                         const record = getStudentRecord(student.id);
@@ -624,6 +641,12 @@ export default function AttendanceTracking() {
               {!editingRecord && (
                 <div>
                   <label className="text-sm font-medium">Select Student *</label>
+                  <Input
+                    placeholder="Search student..."
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    className="mb-2"
+                  />
                   <Select
                     value={formData.studentId}
                     onValueChange={(value) => setFormData({...formData, studentId: value})}
@@ -634,6 +657,7 @@ export default function AttendanceTracking() {
                 <SelectContent>
                       {students
                         .filter((student) => matchesShiftFilter(student.shift))
+                        .filter((student) => matchesSearch(student))
                         .map((student) => (
                         <SelectItem key={student.id} value={student.id}>
                           {student.firstName} {student.lastName} {student.shift ? `(${student.shift})` : '(Unassigned)'}
