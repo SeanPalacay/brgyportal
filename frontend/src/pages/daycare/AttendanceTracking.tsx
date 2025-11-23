@@ -225,7 +225,7 @@ export default function AttendanceTracking() {
 
       // Define a type for Student with shift information
       interface StudentWithShift extends Student {
-        shift?: 'morning' | 'afternoon' | null;
+        shift?: 'morning' | 'afternoon' | 'unassigned' | null;
       }
 
       // Fetch student data with shift information specifically for the report
@@ -237,7 +237,16 @@ export default function AttendanceTracking() {
       } catch (error) {
         console.error('Could not fetch student shifts:', error);
         // Fall back to original students list if the API call fails
-        studentsWithShifts = allStudents.map((s: Student) => ({...s, shift: 'unassigned'} as StudentWithShift));
+        studentsWithShifts = allStudents.map((s: Student) => {
+          return {
+            id: s.id,
+            firstName: s.firstName,
+            lastName: s.lastName,
+            middleName: s.middleName,
+            dateOfBirth: s.dateOfBirth,
+            shift: 'unassigned' // Add the shift property
+          } as StudentWithShift;
+        });
       }
 
       // Create a list of students with their attendance status and shift
