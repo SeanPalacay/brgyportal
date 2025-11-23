@@ -5,7 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, Users, ArrowLeft, UserCheck } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, ArrowLeft, UserCheck, UserMinus } from 'lucide-react';
 import type { Event } from '@/types/index';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -104,6 +104,20 @@ export default function EventDetails() {
       fetchAttendance(); // Refresh the attendance list
     } catch (error) {
       console.error('Failed to mark attendance', error);
+    }
+  };
+
+  const removeAttendance = async (attendanceId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to remove ${userName} from the attendance list?`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/events/attendance/${attendanceId}`);
+      fetchAttendance(); // Refresh the attendance list
+    } catch (error) {
+      console.error('Failed to remove attendance', error);
+      alert('Failed to remove attendance record. Please try again.');
     }
   };
 
@@ -217,10 +231,17 @@ export default function EventDetails() {
                 <UserCheck className="h-5 w-5" />
                 Approved Participants ({registrations.length})
               </div>
-              <Button onClick={() => setShowMarkAttendance(true)}>
-                <UserCheck className="h-4 w-4 mr-2" />
-                Mark Attendance
-              </Button>
+              <div className="flex items-center gap-3">
+                {attendance.length >= 100 && (
+                  <Badge variant="destructive" className="text-xs">
+                    Max Limit Reached (100/100)
+                  </Badge>
+                )}
+                <Button onClick={() => setShowMarkAttendance(true)} disabled={attendance.length >= 100}>
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  Mark Attendance
+                </Button>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -229,62 +250,81 @@ export default function EventDetails() {
                 No approved participants yet.
               </p>
             ) : (
-              <div className="space-y-3">
-                {registrations.map((registration) => {
-                  const hasAttended = attendance.some(a => a.userId === registration.user.id);
-                  return (
+              <>
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-blue-900">Attendance Progress:</span>
+                    <span className="text-blue-700">
+                      {attendance.length} / {Math.min(registrations.length, 100)} marked
+                      {attendance.length >= 100 && " (Maximum limit)"}
+                    </span>
+                  </div>
+                  <div className="mt-2 w-full bg-blue-100 rounded-full h-2">
                     <div
-                      key={registration.id}
-                      className={`flex items-center justify-between p-3 border rounded-lg ${
-                        hasAttended ? 'bg-green-50 border-green-200' : 'bg-muted/30'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          hasAttended ? 'bg-green-100' : 'bg-primary/10'
-                        }`}>
-                          <span className={`text-sm font-medium ${
-                            hasAttended ? 'text-green-800' : 'text-primary'
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.min((attendance.length / Math.min(registrations.length, 100)) * 100, 100)}%`
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {registrations.map((registration) => {
+                    const hasAttended = attendance.some(a => a.userId === registration.user.id);
+                    return (
+                      <div
+                        key={registration.id}
+                        className={`flex items-center justify-between p-3 border rounded-lg ${
+                          hasAttended ? 'bg-green-50 border-green-200' : 'bg-muted/30'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            hasAttended ? 'bg-green-100' : 'bg-primary/10'
                           }`}>
-                            {registration.user.firstName.charAt(0)}{registration.user.lastName.charAt(0)}
-                          </span>
+                            <span className={`text-sm font-medium ${
+                              hasAttended ? 'text-green-800' : 'text-primary'
+                            }`}>
+                              {registration.user.firstName.charAt(0)}{registration.user.lastName.charAt(0)}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {registration.user.firstName} {registration.user.lastName}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {registration.user.email}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">
-                            {registration.user.firstName} {registration.user.lastName}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {registration.user.email}
-                          </p>
+                        <div className="text-right">
+                          {hasAttended ? (
+                            <Badge variant="default" className="bg-green-600">
+                              Attended
+                            </Badge>
+                          ) : attendance.length >= 100 ? (
+                            <span className="text-sm text-muted-foreground">Limit reached</span>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setMarkAttendanceData({
+                                  userId: registration.user.id,
+                                  remarks: ''
+                                });
+                                setShowMarkAttendance(true);
+                              }}
+                            >
+                              Mark Attended
+                            </Button>
+                          )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        {hasAttended ? (
-                          <Badge variant="default" className="bg-green-600">
-                            Attended
-                          </Badge>
-                        ) : attendance.length >= 100 ? (
-                          <span className="text-sm text-muted-foreground">Limit reached</span>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setMarkAttendanceData({
-                                userId: registration.user.id,
-                                remarks: ''
-                              });
-                              setShowMarkAttendance(true);
-                            }}
-                          >
-                            Mark Attended
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -326,13 +366,23 @@ export default function EventDetails() {
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <Badge variant="default" className="bg-green-600">
-                        Attended
-                      </Badge>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(record.attendedAt).toLocaleString()}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <Badge variant="default" className="bg-green-600">
+                          Attended
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(record.attendedAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeAttendance(record.id, `${record.user?.firstName} ${record.user?.lastName}`)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <UserMinus className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
