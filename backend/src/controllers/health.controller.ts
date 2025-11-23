@@ -102,12 +102,35 @@ export const updatePatient = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    // Remove fields that shouldn't be updated or don't exist in schema
+    const { guardianUserId, userId, createdAt, updatedAt, _count, user, appointments, immunizationRecords, ...validFields } = updateData;
+
+    // Convert string values to appropriate types
+    const processedData: any = {
+      ...validFields,
+    };
+
+    // Handle date conversion
+    if (validFields.dateOfBirth) {
+      processedData.dateOfBirth = new Date(validFields.dateOfBirth);
+    }
+
+    // Handle numeric fields
+    if (validFields.birthWeight !== undefined) {
+      processedData.birthWeight = validFields.birthWeight ? parseFloat(validFields.birthWeight) : null;
+    }
+    if (validFields.birthLength !== undefined) {
+      processedData.birthLength = validFields.birthLength ? parseFloat(validFields.birthLength) : null;
+    }
+
+    // Handle guardianUserId separately
+    if (guardianUserId !== undefined) {
+      processedData.guardianUserId = guardianUserId || null;
+    }
+
     const patient = await prisma.patient.update({
       where: { id },
-      data: {
-        ...updateData,
-        ...(updateData.dateOfBirth && { dateOfBirth: new Date(updateData.dateOfBirth) })
-      }
+      data: processedData
     });
 
     res.json({ message: 'Patient updated successfully', patient });
