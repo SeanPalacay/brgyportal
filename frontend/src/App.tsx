@@ -22,6 +22,7 @@ const HealthDashboard = lazy(() => import('./pages/health/HealthDashboard'));
 const PatientManagement = lazy(() => import('./pages/health/PatientManagement'));
 const AppointmentScheduling = lazy(() => import('./pages/health/AppointmentScheduling'));
 const HealthRecords = lazy(() => import('./pages/health/HealthRecords'));
+const ImmunizationCard = lazy(() => import('./pages/health/ImmunizationCard'));
 const VaccinationTracking = lazy(() => import('./pages/health/VaccinationTracking'));
 const CertificateGenerator = lazy(() => import('./pages/health/CertificateGenerator'));
 const MyHealthRecords = lazy(() => import('./pages/health/MyHealthRecords'));
@@ -32,6 +33,7 @@ const ChildRegistrationForm = lazy(() => import('./pages/daycare/ChildRegistrati
 const StudentRegistration = lazy(() => import('./pages/daycare/StudentRegistration'));
 const Enrollees = lazy(() => import('./pages/daycare/Enrollees'));
 const AttendanceTracking = lazy(() => import('./pages/daycare/AttendanceTracking'));
+const ShiftManagement = lazy(() => import('./pages/daycare/ShiftManagement'));
 const MyChildrenProgress = lazy(() => import('./pages/daycare/MyChildrenProgress'));
 const ProgressReports = lazy(() => import('./pages/daycare/ProgressReports'));
 const EducationalResources = lazy(() => import('./pages/daycare/EducationalResources'));
@@ -145,6 +147,11 @@ function App() {
                 <MyHealthRecords />
               </ProtectedRoute>
             } />
+            <Route path="/health/immunization-card" element={
+              <ProtectedRoute>
+                <ImmunizationCard />
+              </ProtectedRoute>
+            } />
             <Route path="/health/vaccinations" element={
               <ProtectedRoute>
                 <VaccinationTracking />
@@ -180,6 +187,11 @@ function App() {
             <Route path="/daycare/attendance" element={
               <ProtectedRoute>
                 <AttendanceTracking />
+              </ProtectedRoute>
+            } />
+            <Route path="/daycare/shifts" element={
+              <ProtectedRoute>
+                <ShiftManagement />
               </ProtectedRoute>
             } />
             <Route path="/daycare/progress" element={
