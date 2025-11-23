@@ -34,7 +34,8 @@ interface ImmunizationCard {
       doses: Array<{
         number: number;
         timing: string;
-        dateGiven: string | null;
+        scheduledDate: string; // Calculated due date based on birth date
+        dateGiven: string | null; // Actual date vaccine was administered
         remarks: string | null;
       }>;
     }>;
@@ -136,51 +137,51 @@ export default function ImmunizationCardManager() {
           {
             vaccine: "BCG Vaccine",
             doses: [
-              { number: 1, timing: "At birth", dateGiven: calculateDate("At birth"), remarks: null }
+              { number: 1, timing: "At birth", scheduledDate: calculateDate("At birth"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Hepatitis B Vaccine",
             doses: [
-              { number: 1, timing: "At birth", dateGiven: calculateDate("At birth"), remarks: null }
+              { number: 1, timing: "At birth", scheduledDate: calculateDate("At birth"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Pentavalent Vaccine (DPT-Hep B-HIB)",
             doses: [
-              { number: 1, timing: "1½ months", dateGiven: calculateDate("1½ months"), remarks: null },
-              { number: 2, timing: "2½ months", dateGiven: calculateDate("2½ months"), remarks: null },
-              { number: 3, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null }
+              { number: 1, timing: "1½ months", scheduledDate: calculateDate("1½ months"), dateGiven: null, remarks: null },
+              { number: 2, timing: "2½ months", scheduledDate: calculateDate("2½ months"), dateGiven: null, remarks: null },
+              { number: 3, timing: "3½ months", scheduledDate: calculateDate("3½ months"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Oral Polio Vaccine (OPV)",
             doses: [
-              { number: 1, timing: "1½ months", dateGiven: calculateDate("1½ months"), remarks: null },
-              { number: 2, timing: "2½ months", dateGiven: calculateDate("2½ months"), remarks: null },
-              { number: 3, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null }
+              { number: 1, timing: "1½ months", scheduledDate: calculateDate("1½ months"), dateGiven: null, remarks: null },
+              { number: 2, timing: "2½ months", scheduledDate: calculateDate("2½ months"), dateGiven: null, remarks: null },
+              { number: 3, timing: "3½ months", scheduledDate: calculateDate("3½ months"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Inactivated Polio Vaccine (IPV)",
             doses: [
-              { number: 1, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null },
-              { number: 2, timing: "9 months", dateGiven: calculateDate("9 months"), remarks: null }
+              { number: 1, timing: "3½ months", scheduledDate: calculateDate("3½ months"), dateGiven: null, remarks: null },
+              { number: 2, timing: "9 months", scheduledDate: calculateDate("9 months"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Pneumococcal Conjugate Vaccine (PCV)",
             doses: [
-              { number: 1, timing: "1½ months", dateGiven: calculateDate("1½ months"), remarks: null },
-              { number: 2, timing: "2½ months", dateGiven: calculateDate("2½ months"), remarks: null },
-              { number: 3, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null }
+              { number: 1, timing: "1½ months", scheduledDate: calculateDate("1½ months"), dateGiven: null, remarks: null },
+              { number: 2, timing: "2½ months", scheduledDate: calculateDate("2½ months"), dateGiven: null, remarks: null },
+              { number: 3, timing: "3½ months", scheduledDate: calculateDate("3½ months"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Measles, Mumps, Rubella Vaccine (MMR)",
             doses: [
-              { number: 1, timing: "9 months", dateGiven: calculateDate("9 months"), remarks: null },
-              { number: 2, timing: "1 year", dateGiven: calculateDate("1 year"), remarks: null }
+              { number: 1, timing: "9 months", scheduledDate: calculateDate("9 months"), dateGiven: null, remarks: null },
+              { number: 2, timing: "1 year", scheduledDate: calculateDate("1 year"), dateGiven: null, remarks: null }
             ]
           }
         ]
@@ -412,10 +413,10 @@ export default function ImmunizationCardManager() {
                           <h4 className="font-medium mb-2">Vaccines Due Soon</h4>
                           {card.cardData.vaccinationSchedule
                             .flatMap(vaccine => vaccine.doses
-                              .filter(dose => 
-                                dose.dateGiven && 
-                                new Date(dose.dateGiven) > new Date() &&
-                                new Date(dose.dateGiven) <= new Date(new Date().setDate(new Date().getDate() + 30))
+                              .filter(dose =>
+                                !dose.dateGiven && // Not yet given
+                                new Date(dose.scheduledDate) > new Date() &&
+                                new Date(dose.scheduledDate) <= new Date(new Date().setDate(new Date().getDate() + 30))
                               )
                               .map(dose => ({ ...dose, vaccine: vaccine.vaccine }))
                             )
@@ -423,14 +424,14 @@ export default function ImmunizationCardManager() {
                             .map((dose, idx) => (
                               <div key={idx} className="flex justify-between text-sm py-1 border-b">
                                 <span>{dose.vaccine} (Dose {dose.number})</span>
-                                <span>{new Date(dose.dateGiven!).toLocaleDateString()}</span>
+                                <span className="text-blue-600">{new Date(dose.scheduledDate).toLocaleDateString()}</span>
                               </div>
                             ))}
                           {card.cardData.vaccinationSchedule
                             .flatMap(vaccine => vaccine.doses)
-                            .filter(dose => 
-                              dose.dateGiven && 
-                              new Date(dose.dateGiven) > new Date()
+                            .filter(dose =>
+                              !dose.dateGiven &&
+                              new Date(dose.scheduledDate) > new Date()
                             ).length === 0 && (
                             <p className="text-sm text-muted-foreground">No upcoming vaccines</p>
                           )}
@@ -439,8 +440,8 @@ export default function ImmunizationCardManager() {
                           <h4 className="font-medium mb-2">Recent Vaccinations</h4>
                           {card.cardData.vaccinationSchedule
                             .flatMap(vaccine => vaccine.doses
-                              .filter(dose => 
-                                dose.dateGiven && 
+                              .filter(dose =>
+                                dose.dateGiven && // Has been given
                                 new Date(dose.dateGiven) <= new Date()
                               )
                               .map(dose => ({ ...dose, vaccine: vaccine.vaccine }))
@@ -450,13 +451,13 @@ export default function ImmunizationCardManager() {
                             .map((dose, idx) => (
                               <div key={idx} className="flex justify-between text-sm py-1 border-b">
                                 <span>{dose.vaccine} (Dose {dose.number})</span>
-                                <span>{new Date(dose.dateGiven!).toLocaleDateString()}</span>
+                                <span className="text-green-600">{new Date(dose.dateGiven!).toLocaleDateString()}</span>
                               </div>
                             ))}
                           {card.cardData.vaccinationSchedule
                             .flatMap(vaccine => vaccine.doses)
-                            .filter(dose => 
-                              dose.dateGiven && 
+                            .filter(dose =>
+                              dose.dateGiven &&
                               new Date(dose.dateGiven) <= new Date()
                             ).length === 0 && (
                             <p className="text-sm text-muted-foreground">No vaccinations recorded yet</p>
@@ -674,7 +675,11 @@ export default function ImmunizationCardManager() {
                                   <TableRow key={dIndex}>
                                     <TableCell>{dose.number}</TableCell>
                                     <TableCell>{dose.timing}</TableCell>
-                                    <TableCell>{new Date(dose.dateGiven!).toLocaleDateString()}</TableCell>
+                                    <TableCell>
+                                      <span className="font-medium text-blue-600">
+                                        {new Date(dose.scheduledDate).toLocaleDateString()}
+                                      </span>
+                                    </TableCell>
                                     <TableCell>
                                       {isHealthWorker ? (
                                         <Input
@@ -683,10 +688,10 @@ export default function ImmunizationCardManager() {
                                           onChange={(e) => {
                                             if (selectedCard.id) {
                                               handleUpdateDose(
-                                                selectedCard.id, 
-                                                vIndex, 
-                                                dIndex, 
-                                                'dateGiven', 
+                                                selectedCard.id,
+                                                vIndex,
+                                                dIndex,
+                                                'dateGiven',
                                                 e.target.value
                                               );
                                             }
@@ -694,8 +699,8 @@ export default function ImmunizationCardManager() {
                                           className="w-full"
                                         />
                                       ) : (
-                                        dose.dateGiven ? 
-                                          new Date(dose.dateGiven).toLocaleDateString() : 
+                                        dose.dateGiven ?
+                                          new Date(dose.dateGiven).toLocaleDateString() :
                                           'Not given'
                                       )}
                                     </TableCell>
@@ -706,10 +711,10 @@ export default function ImmunizationCardManager() {
                                           onChange={(e) => {
                                             if (selectedCard.id) {
                                               handleUpdateDose(
-                                                selectedCard.id, 
-                                                vIndex, 
-                                                dIndex, 
-                                                'remarks', 
+                                                selectedCard.id,
+                                                vIndex,
+                                                dIndex,
+                                                'remarks',
                                                 e.target.value
                                               );
                                             }

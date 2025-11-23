@@ -228,51 +228,51 @@ export default function PatientManagement() {
           {
             vaccine: "BCG Vaccine",
             doses: [
-              { number: 1, timing: "At birth", dateGiven: calculateDate("At birth"), remarks: null }
+              { number: 1, timing: "At birth", scheduledDate: calculateDate("At birth"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Hepatitis B Vaccine",
             doses: [
-              { number: 1, timing: "At birth", dateGiven: calculateDate("At birth"), remarks: null }
+              { number: 1, timing: "At birth", scheduledDate: calculateDate("At birth"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Pentavalent Vaccine (DPT-Hep B-HIB)",
             doses: [
-              { number: 1, timing: "1½ months", dateGiven: calculateDate("1½ months"), remarks: null },
-              { number: 2, timing: "2½ months", dateGiven: calculateDate("2½ months"), remarks: null },
-              { number: 3, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null }
+              { number: 1, timing: "1½ months", scheduledDate: calculateDate("1½ months"), dateGiven: null, remarks: null },
+              { number: 2, timing: "2½ months", scheduledDate: calculateDate("2½ months"), dateGiven: null, remarks: null },
+              { number: 3, timing: "3½ months", scheduledDate: calculateDate("3½ months"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Oral Polio Vaccine (OPV)",
             doses: [
-              { number: 1, timing: "1½ months", dateGiven: calculateDate("1½ months"), remarks: null },
-              { number: 2, timing: "2½ months", dateGiven: calculateDate("2½ months"), remarks: null },
-              { number: 3, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null }
+              { number: 1, timing: "1½ months", scheduledDate: calculateDate("1½ months"), dateGiven: null, remarks: null },
+              { number: 2, timing: "2½ months", scheduledDate: calculateDate("2½ months"), dateGiven: null, remarks: null },
+              { number: 3, timing: "3½ months", scheduledDate: calculateDate("3½ months"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Inactivated Polio Vaccine (IPV)",
             doses: [
-              { number: 1, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null },
-              { number: 2, timing: "9 months", dateGiven: calculateDate("9 months"), remarks: null }
+              { number: 1, timing: "3½ months", scheduledDate: calculateDate("3½ months"), dateGiven: null, remarks: null },
+              { number: 2, timing: "9 months", scheduledDate: calculateDate("9 months"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Pneumococcal Conjugate Vaccine (PCV)",
             doses: [
-              { number: 1, timing: "1½ months", dateGiven: calculateDate("1½ months"), remarks: null },
-              { number: 2, timing: "2½ months", dateGiven: calculateDate("2½ months"), remarks: null },
-              { number: 3, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null }
+              { number: 1, timing: "1½ months", scheduledDate: calculateDate("1½ months"), dateGiven: null, remarks: null },
+              { number: 2, timing: "2½ months", scheduledDate: calculateDate("2½ months"), dateGiven: null, remarks: null },
+              { number: 3, timing: "3½ months", scheduledDate: calculateDate("3½ months"), dateGiven: null, remarks: null }
             ]
           },
           {
             vaccine: "Measles, Mumps, Rubella Vaccine (MMR)",
             doses: [
-              { number: 1, timing: "9 months", dateGiven: calculateDate("9 months"), remarks: null },
-              { number: 2, timing: "1 year", dateGiven: calculateDate("1 year"), remarks: null }
+              { number: 1, timing: "9 months", scheduledDate: calculateDate("9 months"), dateGiven: null, remarks: null },
+              { number: 2, timing: "1 year", scheduledDate: calculateDate("1 year"), dateGiven: null, remarks: null }
             ]
           }
         ]
