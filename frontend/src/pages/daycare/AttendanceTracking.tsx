@@ -146,7 +146,7 @@ export default function AttendanceTracking() {
           student,
           attendanceDate: selectedDate,
           status,
-          timeIn: status === 'PRESENT' || status === 'LATE' ? new Date(`${selectedDate}T${timeString}`) : undefined,
+          timeIn: status === 'PRESENT' || status === 'LATE' ? `${selectedDate}T${timeString}` : undefined,
           recordedBy: user.id || 'current-user'
         };
 
@@ -214,8 +214,17 @@ export default function AttendanceTracking() {
       doc.setFontSize(12);
       doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
 
+      // Define a type for the temporary attendance structure
+      type AttendanceWithShift = {
+        name: string;
+        status: string;
+        timeIn: string;
+        remarks: string;
+        shift: string;
+      };
+
       // Create a list of students with their attendance status and shift
-      const allStudentsWithAttendance = allStudents.map(student => {
+      const allStudentsWithAttendance: AttendanceWithShift[] = allStudents.map((student: Student) => {
         const record = records.find(r => r.studentId === student.id && r.attendanceDate === selectedDate);
         return {
           name: `${student.firstName} ${student.lastName}`,
