@@ -17,6 +17,7 @@ interface Student {
   firstName: string;
   lastName: string;
   middleName?: string;
+  shift?: 'morning' | 'afternoon' | null;
   dateOfBirth: string;
 }
 
@@ -188,6 +189,12 @@ export default function AttendanceTracking() {
 
   const getStudentRecord = (studentId: string) => {
     return records.find(r => r.studentId === studentId && r.attendanceDate === selectedDate);
+  };
+
+  const getShiftBadge = (shift?: 'morning' | 'afternoon' | null) => {
+    if (shift === 'morning') return <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">Morning</Badge>;
+    if (shift === 'afternoon') return <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-100">Afternoon</Badge>;
+    return <Badge variant="outline" className="bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-100">Unassigned</Badge>;
   };
 
   const todayStats = {
@@ -534,7 +541,10 @@ export default function AttendanceTracking() {
                       {records.map((record) => (
                         <TableRow key={record.id}>
                           <TableCell className="font-medium">
-                            {record.student?.firstName} {record.student?.lastName}
+                            <div className="flex items-center gap-2">
+                              <span>{record.student?.firstName} {record.student?.lastName}</span>
+                              {getShiftBadge((record.student as any)?.shift)}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {getStatusBadge(record.status)}
