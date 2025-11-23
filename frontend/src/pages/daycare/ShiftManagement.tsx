@@ -217,22 +217,22 @@ export default function ShiftManagement() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Morning Shift */}
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Morning Shift</h3>
-                  <Badge variant="default" className="bg-blue-100 text-blue-800">
-                    {morningStudents.length} students
-                  </Badge>
-                </div>
-                <div
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Morning Shift</h3>
+                <Badge variant="default" className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-100">
+                  {morningStudents.length} students
+                </Badge>
+              </div>
+              <div
                 ref={morningRef}
-                className="space-y-2 min-h-32 p-4 border-2 border-dashed rounded-lg bg-blue-50"
+                className="space-y-2 min-h-32 p-4 border-2 border-dashed rounded-lg bg-blue-50 dark:bg-slate-800 dark:border-blue-500/40"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'morning')}
               >
                   {morningStudents.map(student => (
                     <div
                       key={student.id}
-                      className="flex items-center justify-between p-3 bg-white rounded border cursor-move hover:bg-blue-50"
+                      className="flex items-center justify-between p-3 bg-white rounded border cursor-move hover:bg-blue-50 dark:bg-slate-900/70 dark:border-blue-500/40 dark:hover:bg-slate-800"
                       draggable
                       onDragStart={(e) => handleDragStart(e, student)}
                     >
@@ -260,22 +260,22 @@ export default function ShiftManagement() {
 
               {/* Unassigned Students */}
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Unassigned</h3>
-                  <Badge variant="outline">
-                    {unassignedStudents.length} students
-                  </Badge>
-                </div>
-                <div
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Unassigned</h3>
+                <Badge variant="outline">
+                  {unassignedStudents.length} students
+                </Badge>
+              </div>
+              <div
                 ref={unassignedRef}
-                className="space-y-2 min-h-32 p-4 border-2 border-dashed rounded-lg bg-gray-50"
+                className="space-y-2 min-h-32 p-4 border-2 border-dashed rounded-lg bg-gray-50 dark:bg-slate-800 dark:border-slate-600"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'unassigned')}
               >
                   {unassignedStudents.map(student => (
                     <div
                       key={student.id}
-                      className="flex items-center justify-between p-3 bg-white rounded border cursor-move hover:bg-gray-100"
+                      className="flex items-center justify-between p-3 bg-white rounded border cursor-move hover:bg-gray-100 dark:bg-slate-900/70 dark:border-slate-700 dark:hover:bg-slate-800"
                       draggable
                       onDragStart={(e) => handleDragStart(e, student)}
                     >
@@ -312,22 +312,22 @@ export default function ShiftManagement() {
 
               {/* Afternoon Shift */}
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Afternoon Shift</h3>
-                  <Badge variant="default" className="bg-purple-100 text-purple-800">
-                    {afternoonStudents.length} students
-                  </Badge>
-                </div>
-                <div
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Afternoon Shift</h3>
+                <Badge variant="default" className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-100">
+                  {afternoonStudents.length} students
+                </Badge>
+              </div>
+              <div
                 ref={afternoonRef}
-                className="space-y-2 min-h-32 p-4 border-2 border-dashed rounded-lg bg-purple-50"
+                className="space-y-2 min-h-32 p-4 border-2 border-dashed rounded-lg bg-purple-50 dark:bg-slate-800 dark:border-purple-500/40"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'afternoon')}
               >
                   {afternoonStudents.map(student => (
                     <div
                       key={student.id}
-                      className="flex items-center justify-between p-3 bg-white rounded border cursor-move hover:bg-purple-50"
+                      className="flex items-center justify-between p-3 bg-white rounded border cursor-move hover:bg-purple-50 dark:bg-slate-900/70 dark:border-purple-500/40 dark:hover:bg-slate-800"
                       draggable
                       onDragStart={(e) => handleDragStart(e, student)}
                     >
@@ -354,7 +354,7 @@ export default function ShiftManagement() {
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-slate-700">
               <h4 className="font-medium mb-2">Shift Assignment Tips</h4>
               <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
                 <li>Drag and drop functionality is available for easy assignment (not shown in this implementation)</li>
