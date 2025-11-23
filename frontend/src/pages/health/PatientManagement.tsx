@@ -101,7 +101,7 @@ export default function PatientManagement() {
     }
     
     // Validate required fields for non-residents
-    if (!isResident && (!formData.firstName || !formData.lastName || !formData.dateOfBirth || !formData.gender || !formData.address || !formData.contactNumber || !formData.emergencyContact)) {
+    if (!isResident && (!formData.firstName || !formData.lastName || !formData.dateOfBirth || !formData.gender || !formData.address || !formData.contactNumber || !formData.emergencyContact || !formData.emergencyContactName)) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -145,15 +145,139 @@ export default function PatientManagement() {
     }
     
     try {
-      await api.post('/health/patients', submitData);
+      const response = await api.post('/health/patients', submitData);
+      const newPatient = response.data.patient;
+
+      // Check if patient is an infant (< 1 year old) and auto-create immunization card
+      const isInfant = calculateAge(newPatient.dateOfBirth) < 1;
+
+      if (isInfant) {
+        try {
+          // Auto-create immunization card for infant
+          const immunizationCardData = initializeImmunizationCard(newPatient);
+          await api.post('/health/immunization-cards', immunizationCardData);
+          toast.success('Patient added and immunization card created successfully!');
+        } catch (immunizationError) {
+          console.error('Failed to create immunization card:', immunizationError);
+          toast.warning('Patient added but immunization card creation failed. Please create it manually.');
+        }
+      } else {
+        toast.success('Patient added successfully');
+      }
+
       setShowAddDialog(false);
       resetForm();
       fetchPatients();
-      toast.success('Patient added successfully');
     } catch (error) {
       console.error('Failed to add patient:', error);
       toast.error('Failed to add patient');
     }
+  };
+
+  // Initialize immunization card structure with Philippine vaccination schedule
+  const initializeImmunizationCard = (patient: Patient) => {
+    const dob = new Date(patient.dateOfBirth);
+
+    // Helper function to calculate dates based on timing
+    const calculateDate = (timing: string): string => {
+      switch (timing) {
+        case "At birth":
+          return dob.toISOString().split('T')[0];
+        case "1½ months":
+          const oneHalfMonths = new Date(dob);
+          oneHalfMonths.setDate(dob.getDate() + 45); // ~1.5 months
+          return oneHalfMonths.toISOString().split('T')[0];
+        case "2½ months":
+          const twoHalfMonths = new Date(dob);
+          twoHalfMonths.setDate(dob.getDate() + 75); // ~2.5 months
+          return twoHalfMonths.toISOString().split('T')[0];
+        case "3½ months":
+          const threeHalfMonths = new Date(dob);
+          threeHalfMonths.setDate(dob.getDate() + 105); // ~3.5 months
+          return threeHalfMonths.toISOString().split('T')[0];
+        case "9 months":
+          const nineMonths = new Date(dob);
+          nineMonths.setMonth(dob.getMonth() + 9);
+          return nineMonths.toISOString().split('T')[0];
+        case "1 year":
+          const oneYear = new Date(dob);
+          oneYear.setFullYear(dob.getFullYear() + 1);
+          return oneYear.toISOString().split('T')[0];
+        default:
+          return dob.toISOString().split('T')[0];
+      }
+    };
+
+    return {
+      patientId: patient.id,
+      cardData: {
+        childInformation: {
+          name: `${patient.firstName} ${patient.middleName || ''} ${patient.lastName}`.trim(),
+          motherName: patient.motherName || '',
+          fatherName: patient.fatherName || '',
+          dateOfBirth: patient.dateOfBirth.split('T')[0],
+          placeOfBirth: patient.placeOfBirth || '',
+          birthWeight: patient.birthWeight ? parseFloat(patient.birthWeight) : null,
+          birthHeight: patient.birthLength ? parseFloat(patient.birthLength) : null,
+          sex: patient.gender,
+          address: patient.address,
+          barangay: patient.address.split(',').pop()?.trim() || '',
+          familyNumber: patient.id.slice(0, 8)
+        },
+        vaccinationSchedule: [
+          {
+            vaccine: "BCG Vaccine",
+            doses: [
+              { number: 1, timing: "At birth", dateGiven: calculateDate("At birth"), remarks: null }
+            ]
+          },
+          {
+            vaccine: "Hepatitis B Vaccine",
+            doses: [
+              { number: 1, timing: "At birth", dateGiven: calculateDate("At birth"), remarks: null }
+            ]
+          },
+          {
+            vaccine: "Pentavalent Vaccine (DPT-Hep B-HIB)",
+            doses: [
+              { number: 1, timing: "1½ months", dateGiven: calculateDate("1½ months"), remarks: null },
+              { number: 2, timing: "2½ months", dateGiven: calculateDate("2½ months"), remarks: null },
+              { number: 3, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null }
+            ]
+          },
+          {
+            vaccine: "Oral Polio Vaccine (OPV)",
+            doses: [
+              { number: 1, timing: "1½ months", dateGiven: calculateDate("1½ months"), remarks: null },
+              { number: 2, timing: "2½ months", dateGiven: calculateDate("2½ months"), remarks: null },
+              { number: 3, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null }
+            ]
+          },
+          {
+            vaccine: "Inactivated Polio Vaccine (IPV)",
+            doses: [
+              { number: 1, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null },
+              { number: 2, timing: "9 months", dateGiven: calculateDate("9 months"), remarks: null }
+            ]
+          },
+          {
+            vaccine: "Pneumococcal Conjugate Vaccine (PCV)",
+            doses: [
+              { number: 1, timing: "1½ months", dateGiven: calculateDate("1½ months"), remarks: null },
+              { number: 2, timing: "2½ months", dateGiven: calculateDate("2½ months"), remarks: null },
+              { number: 3, timing: "3½ months", dateGiven: calculateDate("3½ months"), remarks: null }
+            ]
+          },
+          {
+            vaccine: "Measles, Mumps, Rubella Vaccine (MMR)",
+            doses: [
+              { number: 1, timing: "9 months", dateGiven: calculateDate("9 months"), remarks: null },
+              { number: 2, timing: "1 year", dateGiven: calculateDate("1 year"), remarks: null }
+            ]
+          }
+        ]
+      }
+    };
   };
 
   const resetForm = () => {
@@ -494,12 +618,13 @@ export default function PatientManagement() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="emergencyContactName">Emergency Contact Name</Label>
+                        <Label htmlFor="emergencyContactName">Name of Emergency Contact *</Label>
                         <Input
                           id="emergencyContactName"
                           value={formData.emergencyContactName}
                           onChange={(e) => setFormData({...formData, emergencyContactName: e.target.value})}
-                          placeholder="Name of the person to contact in emergency"
+                          placeholder="Full name of emergency contact person"
+                          required
                         />
                       </div>
                     </>
@@ -1023,8 +1148,9 @@ export default function PatientManagement() {
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               variant="destructive"
+              onClick={() => patientToDelete && handleDeletePatient(patientToDelete)}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete Patient
