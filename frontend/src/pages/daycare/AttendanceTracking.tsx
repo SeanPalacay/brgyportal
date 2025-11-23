@@ -231,7 +231,7 @@ export default function AttendanceTracking() {
       } catch (error) {
         console.error('Could not fetch student shifts:', error);
         // Fall back to original students list if the API call fails
-        studentsWithShifts = allStudents.map(s => ({...s, shift: 'unassigned'} as Student));
+        studentsWithShifts = allStudents.map((s: Student) => ({...s, shift: 'unassigned'} as Student));
       }
 
       // Create a list of students with their attendance status and shift
@@ -249,9 +249,9 @@ export default function AttendanceTracking() {
       });
 
       // Split into morning and afternoon based on shift assignments
-      const morningStudents = allStudentsWithAttendance.filter(s => s.shift === 'morning');
-      const afternoonStudents = allStudentsWithAttendance.filter(s => s.shift === 'afternoon');
-      const unassignedStudents = allStudentsWithAttendance.filter(s => s.shift === 'unassigned');
+      const morningStudents = allStudentsWithAttendance.filter((s: AttendanceWithShift) => s.shift === 'morning');
+      const afternoonStudents = allStudentsWithAttendance.filter((s: AttendanceWithShift) => s.shift === 'afternoon');
+      const unassignedStudents = allStudentsWithAttendance.filter((s: AttendanceWithShift) => s.shift === 'unassigned');
 
       // Add morning section
       doc.setFontSize(14);
