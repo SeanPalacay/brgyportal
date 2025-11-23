@@ -234,15 +234,15 @@ export default function HealthRecords() {
   const ProgressIcon = ({ given, total }: { given: number; total: number }) => {
     const all = given === total;
     const none = given === 0;
-    if (all) return <CheckCircle className="h-4 w-4 text-green-600" />;
-    if (none) return <Clock className="h-4 w-4 text-yellow-600" />;
-    return <Clock className="h-4 w-4 text-blue-600" />;
+    if (all) return <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />;
+    if (none) return <Clock className="h-4 w-4 text-amber-500 dark:text-amber-400" />;
+    return <Clock className="h-4 w-4 text-blue-500 dark:text-blue-400" />;
   };
 
   const StatusIcon = ({ status }: { status: string }) => {
-    if (status === 'completed') return <CheckCircle className="h-4 w-4 text-green-600" />;
-    if (status === 'overdue') return <AlertTriangle className="h-4 w-4 text-red-600" />;
-    return <Clock className="h-4 w-4 text-yellow-600" />;
+    if (status === 'completed') return <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />;
+    if (status === 'overdue') return <AlertTriangle className="h-4 w-4 text-red-500 dark:text-red-400" />;
+    return <Clock className="h-4 w-4 text-amber-500 dark:text-amber-400" />;
   };
 
   return (
@@ -411,6 +411,16 @@ export default function HealthRecords() {
                       >
                         View
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setRecordDraft(record);
+                          setRecordEditOpen(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -439,26 +449,36 @@ export default function HealthRecords() {
 
                 return (
                   <Card key={card.id} className="h-full">
-                    <CardContent className="flex items-center justify-between gap-4 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-base font-semibold">
-                            {card.patient?.firstName} {card.patient?.lastName}
-                          </span>
-                          <Badge variant="outline">Family #{card.cardData.childInformation?.familyNumber}</Badge>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <ProgressIcon given={given} total={totalDoses} />
-                          <span>{completion}</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {card.cardData.vaccinationSchedule.length} vaccine types • tap View for details
-                        </div>
-                      </div>
+                  <CardContent className="flex items-center justify-between gap-4 py-4">
+                    <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
+                        <span className="text-base font-semibold">
+                          {card.patient?.firstName} {card.patient?.lastName}
+                        </span>
+                        <Badge variant="outline">Family #{card.cardData.childInformation?.familyNumber}</Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <ProgressIcon given={given} total={totalDoses} />
+                        <span>{completion}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {card.cardData.vaccinationSchedule.length} vaccine types • tap View for details
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/50 p-2 rounded">
+                        <span><strong>Name:</strong> {card.cardData.childInformation?.name}</span>
+                        <span><strong>DOB:</strong> {card.cardData.childInformation?.dateOfBirth}</span>
+                        <span><strong>Mother:</strong> {card.cardData.childInformation?.motherName}</span>
+                        <span><strong>Father:</strong> {card.cardData.childInformation?.fatherName}</span>
+                        <span><strong>Address:</strong> {card.cardData.childInformation?.address}</span>
+                        <span><strong>Barangay:</strong> {card.cardData.childInformation?.barangay}</span>
+                        <span><strong>Birth Wt:</strong> {card.cardData.childInformation?.birthWeight ?? '—'}</span>
+                        <span><strong>Birth Ht:</strong> {card.cardData.childInformation?.birthHeight ?? '—'}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
                           onClick={() => {
                             setSelectedCard(card);
                             setCardDraft(card);
@@ -485,11 +505,21 @@ export default function HealthRecords() {
             {cardDraft && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="space-y-1">
                     <div className="font-semibold text-lg">
                       {cardDraft.patient?.firstName} {cardDraft.patient?.lastName}
                     </div>
                     <div className="text-sm text-muted-foreground">Family #{cardDraft.cardData.childInformation?.familyNumber}</div>
+                    <div className="text-xs text-muted-foreground grid grid-cols-2 gap-1 bg-slate-50 dark:bg-slate-900/50 p-2 rounded">
+                      <span><strong>DOB:</strong> {cardDraft.cardData.childInformation?.dateOfBirth}</span>
+                      <span><strong>Place:</strong> {cardDraft.cardData.childInformation?.placeOfBirth || '—'}</span>
+                      <span><strong>Mother:</strong> {cardDraft.cardData.childInformation?.motherName || '—'}</span>
+                      <span><strong>Father:</strong> {cardDraft.cardData.childInformation?.fatherName || '—'}</span>
+                      <span><strong>Address:</strong> {cardDraft.cardData.childInformation?.address || '—'}</span>
+                      <span><strong>Barangay:</strong> {cardDraft.cardData.childInformation?.barangay || '—'}</span>
+                      <span><strong>Birth Wt:</strong> {cardDraft.cardData.childInformation?.birthWeight ?? '—'}</span>
+                      <span><strong>Birth Ht:</strong> {cardDraft.cardData.childInformation?.birthHeight ?? '—'}</span>
+                    </div>
                   </div>
                   <Badge variant="secondary">
                     {cardDraft.cardData.vaccinationSchedule.reduce((acc, v) => acc + v.doses.filter(d => d.dateGiven).length, 0)} /
@@ -508,7 +538,7 @@ export default function HealthRecords() {
                         {vaccine.doses.map((dose, dIdx) => {
                           const status = getDoseStatus(dose);
                           return (
-                            <div key={dose.number} className="flex flex-wrap items-center gap-3 rounded bg-slate-50 p-2">
+                            <div key={dose.number} className="flex flex-wrap items-center gap-3 rounded bg-slate-50 dark:bg-slate-900/60 p-2">
                               <div className="flex items-center gap-2 text-sm font-medium">
                                 <StatusIcon status={status} />
                                 Dose {dose.number} ({dose.timing})
