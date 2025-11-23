@@ -17,7 +17,7 @@ interface Student {
   firstName: string;
   lastName: string;
   middleName?: string;
-  shift?: 'morning' | 'afternoon' | null;
+  shift?: 'morning' | 'afternoon' | 'unassigned' | null;
   dateOfBirth: string;
 }
 
