@@ -223,15 +223,28 @@ export default function AttendanceTracking() {
         shift: string;
       };
 
+      // Fetch student data with shift information specifically for the report
+      let studentsWithShifts: Student[] = [];
+      try {
+        const studentsWithShiftResponse = await api.get('/daycare/students');
+        studentsWithShifts = studentsWithShiftResponse.data.students || [];
+      } catch (error) {
+        console.error('Could not fetch student shifts:', error);
+        // Fall back to original students list if the API call fails
+        studentsWithShifts = allStudents.map(s => ({...s, shift: 'unassigned'} as Student));
+      }
+
       // Create a list of students with their attendance status and shift
       const allStudentsWithAttendance: AttendanceWithShift[] = allStudents.map((student: Student) => {
         const record = records.find(r => r.studentId === student.id && r.attendanceDate === selectedDate);
+        // Find corresponding student with shift data
+        const studentWithShift = studentsWithShifts.find(s => s.id === student.id);
         return {
           name: `${student.firstName} ${student.lastName}`,
           status: record?.status || 'ABSENT',
           timeIn: record?.timeIn ? new Date(record.timeIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-',
           remarks: record?.remarks || record?.notes || '-',
-          shift: student.shift || 'unassigned'
+          shift: studentWithShift?.shift || 'unassigned'
         };
       });
 
