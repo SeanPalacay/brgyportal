@@ -57,8 +57,8 @@ export default function EventRegistration() {
     notes: ''
   });
 
-  const userRoles = user?.roles || [user?.role]; // Support both single role and multi-role
-  const isStaff = userRoles?.some((role: string) => ['SK_OFFICER', 'SK_CHAIRMAN', 'SYSTEM_ADMIN'].includes(role));
+  const userRoles = user?.roles || (user?.role ? [user.role] : []); // Support both single role and multi-role
+  const isStaff = userRoles?.some((role: string) => role && ['SK_OFFICER', 'SK_CHAIRMAN', 'SYSTEM_ADMIN'].includes(role));
 
   // Helper function to format time correctly (avoid timezone issues)
   const formatTime = (timeString: string) => {
@@ -161,9 +161,9 @@ export default function EventRegistration() {
     if (!selectedEvent) return;
 
     // Check if already registered
-    const existingReg = registrations.find(
-      r => r.eventId === selectedEvent.id && r.userId === user.userId
-    );
+    const existingReg = user?.id ? registrations.find(
+      r => r.eventId === selectedEvent.id && r.userId === user.id
+    ) : null;
 
     if (existingReg) {
       toast.error('You are already registered for this event');
@@ -241,7 +241,7 @@ export default function EventRegistration() {
     return new Date(eventDate) < new Date();
   };
 
-  const myRegistrations = registrations.filter(r => r.userId === user.id || r.userId === user.userId);
+  const myRegistrations = user?.id ? registrations.filter(r => r.userId === user.id) : [];
   
   // Use all registrations for staff, personal registrations for others
   const baseRegistrations = isStaff ? allRegistrations : registrations;

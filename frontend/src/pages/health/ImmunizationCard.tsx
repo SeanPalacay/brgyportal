@@ -125,8 +125,8 @@ export default function ImmunizationCardManager() {
           fatherName: patient.fatherName || '',
           dateOfBirth: patient.dateOfBirth.split('T')[0],
           placeOfBirth: patient.placeOfBirth || '',
-          birthWeight: patient.birthWeight || null,
-          birthHeight: patient.birthLength || null,
+          birthWeight: patient.birthWeight ? parseFloat(patient.birthWeight as unknown as string) : null,
+          birthHeight: patient.birthLength ? parseFloat(patient.birthLength as unknown as string) : null,
           sex: patient.gender,
           address: patient.address,
           barangay: patient.address.split(',').pop() || '', // Assuming barangay is the last part of address

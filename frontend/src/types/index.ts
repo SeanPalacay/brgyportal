@@ -58,6 +58,7 @@ export interface Patient {
   address: string;
   contactNumber: string;
   emergencyContact: string;
+  emergencyContactName?: string;
   guardianName?: string;
   birthWeight?: string;
   birthLength?: string;
