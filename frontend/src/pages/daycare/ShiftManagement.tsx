@@ -59,18 +59,22 @@ export default function ShiftManagement() {
   };
 
   // Move student to a specific shift
-  const moveStudent = async (studentId: string, newShift: ShiftType) => {
+  const moveStudent = async (studentId: string, newShift: ShiftType | null) => {
     try {
-      // Update on the backend
-      await api.patch(`/daycare/students/${studentId}`, { shift: newShift });
+      // Map 'unassigned' to null for the backend
+      const backendShift = newShift === 'unassigned' ? null : newShift;
 
-      // Update local state
+      // Update on the backend
+      await api.patch(`/daycare/students/${studentId}`, { shift: backendShift });
+
+      // Update local state - map 'unassigned' to null for compatibility with Student interface
+      const mappedShift = newShift === 'unassigned' ? null : newShift;
       const updatedStudents = students.map(stud =>
-        stud.id === studentId ? { ...stud, shift: newShift } : stud
+        stud.id === studentId ? { ...stud, shift: mappedShift } : stud
       );
       setStudents(updatedStudents);
 
-      // Update lists
+      // Update lists - 'unassigned' students are those with shift: null
       setMorningStudents(updatedStudents.filter(s => s.shift === 'morning'));
       setAfternoonStudents(updatedStudents.filter(s => s.shift === 'afternoon'));
       setUnassignedStudents(updatedStudents.filter(s => !s.shift));
@@ -240,7 +244,7 @@ export default function ShiftManagement() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => moveStudent(student.id, null)}
+                        onClick={() => moveStudent(student.id, 'unassigned')}
                       >
                         <MoveLeft className="h-4 w-4" />
                       </Button>
@@ -335,7 +339,7 @@ export default function ShiftManagement() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => moveStudent(student.id, null)}
+                        onClick={() => moveStudent(student.id, 'unassigned')}
                       >
                         <MoveLeft className="h-4 w-4" />
                       </Button>
