@@ -149,6 +149,7 @@ const getMultiRoleNavigation = (userRoles: string[], userPermissions: string[] =
       icon: Heart,
       items: [
         { title: "Immunization Records", url: "/health/my-records" },
+        { title: "My Children's Health", url: "/health/my-childrens-health" },
       ],
     });
   }

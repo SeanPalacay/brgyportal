@@ -26,6 +26,7 @@ const ImmunizationCard = lazy(() => import('./pages/health/ImmunizationCard'));
 const VaccinationTracking = lazy(() => import('./pages/health/VaccinationTracking'));
 const CertificateGenerator = lazy(() => import('./pages/health/CertificateGenerator'));
 const MyHealthRecords = lazy(() => import('./pages/health/MyHealthRecords'));
+const MyChildrensHealth = lazy(() => import('./pages/health/MyChildrensHealth'));
 
 // Daycare Module
 const DaycareDashboard = lazy(() => import('./pages/daycare/DaycareDashboard'));
@@ -145,6 +146,11 @@ function App() {
             <Route path="/health/my-records" element={
               <ProtectedRoute>
                 <MyHealthRecords />
+              </ProtectedRoute>
+            } />
+            <Route path="/health/my-childrens-health" element={
+              <ProtectedRoute>
+                <MyChildrensHealth />
               </ProtectedRoute>
             } />
             <Route path="/health/immunization-card" element={

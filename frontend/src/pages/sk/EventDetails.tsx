@@ -1,15 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, Users, ArrowLeft, UserCheck, UserMinus } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, ArrowLeft, UserCheck, UserMinus, FileDown, Search } from 'lucide-react';
 import type { Event } from '@/types/index';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { exportEventAttendeesToPDF } from '@/lib/exportUtils';
 
 interface EventRegistration {
   id: string;
@@ -47,6 +49,7 @@ export default function EventDetails() {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMarkAttendance, setShowMarkAttendance] = useState(false);
+  const [participantSearchQuery, setParticipantSearchQuery] = useState('');
   const [markAttendanceData, setMarkAttendanceData] = useState({
     userId: '',
     remarks: ''
@@ -118,6 +121,61 @@ export default function EventDetails() {
     } catch (error) {
       console.error('Failed to remove attendance', error);
       alert('Failed to remove attendance record. Please try again.');
+    }
+  };
+
+  const handleExportAttendeesToPDF = () => {
+    if (!event || attendance.length === 0) {
+      alert('No attendance records to export.');
+      return;
+    }
+
+    const exportData = {
+      eventTitle: event.title,
+      eventDate: event.eventDate,
+      eventCategory: event.category,
+      eventLocation: event.location,
+      attendees: attendance.map(record => ({
+        firstName: record.user?.firstName || '',
+        lastName: record.user?.lastName || '',
+        email: record.user?.email || '',
+        contactNumber: record.user?.contactNumber,
+        attendedAt: record.attendedAt,
+        remarks: record.remarks
+      }))
+    };
+
+    exportEventAttendeesToPDF(exportData);
+  };
+
+  // Filter available participants (not yet attended) for the dropdown
+  const availableParticipants = useMemo(() => {
+    return registrations.filter(reg => !attendance.some(att => att.userId === reg.user.id));
+  }, [registrations, attendance]);
+
+  // Filter participants based on search query (min 2 characters)
+  const filteredParticipants = useMemo(() => {
+    // If search query is empty or less than 2 characters, return all available participants
+    if (participantSearchQuery.trim().length < 2) {
+      return availableParticipants;
+    }
+
+    const query = participantSearchQuery.toLowerCase().trim();
+
+    return availableParticipants.filter(reg => {
+      const fullName = `${reg.user.firstName} ${reg.user.lastName}`.toLowerCase();
+      const email = reg.user.email.toLowerCase();
+
+      return fullName.includes(query) || email.includes(query);
+    });
+  }, [availableParticipants, participantSearchQuery]);
+
+  // Reset search and form when dialog closes
+  const handleDialogOpenChange = (open: boolean) => {
+    setShowMarkAttendance(open);
+    if (!open) {
+      setParticipantSearchQuery('');
+      setMarkAttendanceData({ userId: '', remarks: '' });
     }
   };
 
@@ -332,9 +390,21 @@ export default function EventDetails() {
         {/* Attendance Records */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5" />
-              Attendance Records ({attendance.length})
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-5 w-5" />
+                Attendance Records ({attendance.length})
+              </div>
+              {attendance.length > 0 && (
+                <Button
+                  onClick={handleExportAttendeesToPDF}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <FileDown className="h-4 w-4" />
+                  Export to PDF
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -393,15 +463,36 @@ export default function EventDetails() {
       </div>
 
       {/* Mark Attendance Dialog */}
-      <Dialog open={showMarkAttendance} onOpenChange={setShowMarkAttendance}>
-        <DialogContent>
+      <Dialog open={showMarkAttendance} onOpenChange={handleDialogOpenChange}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Mark Attendance</DialogTitle>
           </DialogHeader>
-          
+
           <form onSubmit={markAttendance} className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <label className="block text-sm font-medium mb-1">Select Participant</label>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={participantSearchQuery}
+                  onChange={(e) => setParticipantSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Helper text */}
+              {participantSearchQuery.trim().length > 0 && participantSearchQuery.trim().length < 2 && (
+                <p className="text-xs text-muted-foreground">
+                  Type at least 2 characters to search
+                </p>
+              )}
+
+              {/* Participant Dropdown */}
               <Select
                 value={markAttendanceData.userId}
                 onValueChange={(value) => setMarkAttendanceData({...markAttendanceData, userId: value})}
@@ -410,17 +501,41 @@ export default function EventDetails() {
                   <SelectValue placeholder="Choose a participant..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {attendance.length < 100 && registrations
-                    .filter(reg => !attendance.some(att => att.userId === reg.user.id))
-                    .map(reg => (
+                  {attendance.length >= 100 ? (
+                    <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                      Maximum limit of 100 attendees reached
+                    </div>
+                  ) : filteredParticipants.length === 0 ? (
+                    <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                      {participantSearchQuery.trim().length >= 2
+                        ? 'No results found'
+                        : 'No available participants'}
+                    </div>
+                  ) : (
+                    filteredParticipants.map(reg => (
                       <SelectItem key={reg.user.id} value={reg.user.id}>
-                        {reg.user.firstName} {reg.user.lastName}
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">
+                            {reg.user.firstName} {reg.user.lastName}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {reg.user.email}
+                          </span>
+                        </div>
                       </SelectItem>
-                    ))}
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+
+              {/* Results count */}
+              {participantSearchQuery.trim().length >= 2 && filteredParticipants.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Found {filteredParticipants.length} participant{filteredParticipants.length !== 1 ? 's' : ''}
+                </p>
+              )}
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-1">Remarks (Optional)</label>
               <Textarea
@@ -430,12 +545,14 @@ export default function EventDetails() {
                 rows={3}
               />
             </div>
-            
+
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowMarkAttendance(false)}>
+              <Button type="button" variant="outline" onClick={() => handleDialogOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Mark Attended</Button>
+              <Button type="submit" disabled={!markAttendanceData.userId}>
+                Mark Attended
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

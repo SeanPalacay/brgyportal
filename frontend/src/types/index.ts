@@ -60,6 +60,7 @@ export interface Patient {
   emergencyContact: string;
   emergencyContactName?: string;
   guardianName?: string;
+  guardianUserId?: string; // Link to guardian's user account (for children)
   birthWeight?: string;
   birthLength?: string;
   motherName?: string;

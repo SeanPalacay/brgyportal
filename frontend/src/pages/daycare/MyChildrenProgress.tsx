@@ -24,6 +24,7 @@ interface Student {
   id: string;
   firstName: string;
   lastName: string;
+  shift?: 'morning' | 'afternoon' | null;
   progressReports: ProgressReport[];
 }
 
@@ -56,6 +57,36 @@ export default function MyChildrenProgress() {
     return <Badge variant="destructive">Needs Support</Badge>;
   };
 
+  const getShiftBadge = (shift?: 'morning' | 'afternoon' | null) => {
+    if (!shift) {
+      return (
+        <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-300">
+          Unassigned
+        </Badge>
+      );
+    }
+
+    if (shift === 'morning') {
+      return (
+        <Badge className="bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-100">
+          🌅 Morning
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge className="bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100">
+        🌇 Afternoon
+      </Badge>
+    );
+  };
+
+  const getShiftTiming = (shift?: 'morning' | 'afternoon' | null) => {
+    if (shift === 'morning') return '7:00 AM - 12:00 PM';
+    if (shift === 'afternoon') return '1:00 PM - 5:00 PM';
+    return 'Not assigned';
+  };
+
   const calculateAverageScore = (report: ProgressReport) => {
     const scores = Object.values({
       academic: report.academicPerformance,
@@ -76,7 +107,8 @@ export default function MyChildrenProgress() {
     student.progressReports.map(report => ({
       ...report,
       studentName: `${student.firstName} ${student.lastName}`,
-      studentId: student.id
+      studentId: student.id,
+      studentShift: student.shift
     }))
   ).sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
 
@@ -126,6 +158,58 @@ export default function MyChildrenProgress() {
           </Card>
         </div>
 
+        {/* My Children Cards */}
+        {students.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>My Children</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {students.map((student) => (
+                  <div
+                    key={student.id}
+                    className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">
+                          {student.firstName} {student.lastName}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {student.progressReports.length} {student.progressReports.length === 1 ? 'report' : 'reports'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Shift Assignment</p>
+                        {getShiftBadge(student.shift)}
+                      </div>
+
+                      {student.shift && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Schedule</p>
+                          <p className="text-sm font-medium text-gray-700">
+                            {getShiftTiming(student.shift)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {!student.shift && (
+                      <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                        ⚠️ Shift not assigned yet. Contact daycare staff.
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Student Filter */}
         {students.length > 1 && (
           <Card>
@@ -170,8 +254,11 @@ export default function MyChildrenProgress() {
                   <Card key={report.id} className="border">
                     <CardContent className="pt-6">
                       <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="font-semibold text-lg">{report.studentName}</h3>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-lg">{report.studentName}</h3>
+                            {getShiftBadge((report as any).studentShift)}
+                          </div>
                           <p className="text-sm text-gray-600">
                             Period: {report.reportingPeriod} | Generated: {new Date(report.generatedAt).toLocaleDateString()}
                           </p>

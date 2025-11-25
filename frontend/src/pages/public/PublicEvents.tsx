@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Calendar, Clock, MapPin, Users, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, X, Check } from 'lucide-react';
 import PublicLayout from '@/components/PublicLayout';
 import type { Event } from '@/types/index';
 
@@ -182,9 +182,13 @@ export default function PublicEvents() {
                         </div>
                       </div>
                       {user && userRegistrations.includes(event.id) ? (
-                        <Badge variant="default" className="w-full justify-center py-2">
+                        <Button
+                          className="w-full bg-green-600 hover:bg-green-600 text-white cursor-not-allowed opacity-80"
+                          disabled={true}
+                        >
+                          <Check className="h-4 w-4 mr-2" />
                           Already Registered
-                        </Badge>
+                        </Button>
                       ) : (
                         <Button className="w-full" onClick={() => handleEventClick(event)}>
                           View Details & Register
@@ -303,15 +307,24 @@ export default function PublicEvents() {
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
-                <Button 
-                  className="flex-1" 
-                  onClick={handleEventRegistration}
-                  disabled={registering || (user && userRegistrations.includes(selectedEvent.id))}
-                >
-                  {registering ? 'Registering...' : 
-                   user && userRegistrations.includes(selectedEvent.id) ? 'Already Registered' :
-                   user ? 'Confirm Registration' : 'Login to Register'}
-                </Button>
+                {user && userRegistrations.includes(selectedEvent.id) ? (
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-600 text-white cursor-not-allowed opacity-80"
+                    disabled={true}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Already Registered
+                  </Button>
+                ) : (
+                  <Button
+                    className="flex-1"
+                    onClick={handleEventRegistration}
+                    disabled={registering}
+                  >
+                    {registering ? 'Registering...' :
+                     user ? 'Confirm Registration' : 'Login to Register'}
+                  </Button>
+                )}
               </div>
             </div>
           )}

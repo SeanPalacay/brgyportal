@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '@/lib/api';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Search } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +52,8 @@ export default function ProgressReports() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState('');
   const [filterStudent, setFilterStudent] = useState('all');
+  const [filterSearchQuery, setFilterSearchQuery] = useState('');
+  const [createSearchQuery, setCreateSearchQuery] = useState('');
   const [editingReport, setEditingReport] = useState<ProgressReport | null>(null);
   const [deleteReportId, setDeleteReportId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -221,9 +223,74 @@ export default function ProgressReports() {
     }
   };
 
+  // Helper function to calculate student age
+  const calculateAge = (dateOfBirth: string) => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    return age;
+  };
+
+  // Filter students for the filter dropdown (viewing reports)
+  const filteredStudentsForFilter = useMemo(() => {
+    if (filterSearchQuery.trim().length < 2) {
+      return students;
+    }
+
+    const query = filterSearchQuery.toLowerCase().trim();
+
+    return students.filter(student => {
+      const firstName = student.firstName.toLowerCase();
+      const lastName = student.lastName.toLowerCase();
+      const fullName = `${firstName} ${lastName}`;
+
+      return firstName.includes(query) || lastName.includes(query) || fullName.includes(query);
+    });
+  }, [students, filterSearchQuery]);
+
+  // Filter students for the create report dropdown
+  const filteredStudentsForCreate = useMemo(() => {
+    if (createSearchQuery.trim().length < 2) {
+      return students;
+    }
+
+    const query = createSearchQuery.toLowerCase().trim();
+
+    return students.filter(student => {
+      const firstName = student.firstName.toLowerCase();
+      const lastName = student.lastName.toLowerCase();
+      const fullName = `${firstName} ${lastName}`;
+
+      return firstName.includes(query) || lastName.includes(query) || fullName.includes(query);
+    });
+  }, [students, createSearchQuery]);
+
   const filteredReports = filterStudent && filterStudent !== 'all'
     ? reports.filter(r => r.studentId === filterStudent)
     : reports;
+
+  // Reset search and selection when dialog closes
+  const handleDialogOpenChange = (open: boolean) => {
+    setShowDialog(open);
+    if (!open) {
+      setCreateSearchQuery('');
+      setSelectedStudent('');
+      setFormData({
+        reportingPeriod: '',
+        academicPerformance: '',
+        socialBehavior: '',
+        physicalDevelopment: '',
+        emotionalDevelopment: '',
+        recommendations: ''
+      });
+    }
+  };
 
   return (
     <DashboardLayout currentPage="/daycare/progress-reports">
@@ -278,21 +345,64 @@ export default function ProgressReports() {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>Progress Reports</CardTitle>
-              <div className="flex gap-2 items-center">
+              <div className="flex flex-col gap-2 items-end">
                 <span className="text-sm text-gray-600">Filter by student:</span>
+
+                {/* Search Bar for Filter */}
+                <div className="relative w-[250px]">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search students..."
+                    value={filterSearchQuery}
+                    onChange={(e) => setFilterSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {/* Helper text */}
+                {filterSearchQuery.trim().length > 0 && filterSearchQuery.trim().length < 2 && (
+                  <p className="text-xs text-muted-foreground">
+                    Type at least 2 characters to search
+                  </p>
+                )}
+
+                {/* Student Dropdown */}
                 <Select value={filterStudent} onValueChange={setFilterStudent}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="w-[250px]">
                     <SelectValue placeholder="All students" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All students</SelectItem>
-                    {students.map((student) => (
-                      <SelectItem key={student.id} value={student.id}>
-                        {student.firstName} {student.lastName}
-                      </SelectItem>
-                    ))}
+                    {filteredStudentsForFilter.length === 0 ? (
+                      <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                        {filterSearchQuery.trim().length >= 2
+                          ? 'No students found'
+                          : 'No students available'}
+                      </div>
+                    ) : (
+                      filteredStudentsForFilter.map((student) => (
+                        <SelectItem key={student.id} value={student.id}>
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">
+                              {student.firstName} {student.lastName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              Age: {calculateAge(student.dateOfBirth)} years
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+
+                {/* Results count */}
+                {filterSearchQuery.trim().length >= 2 && filteredStudentsForFilter.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Found {filteredStudentsForFilter.length} student{filteredStudentsForFilter.length !== 1 ? 's' : ''}
+                  </p>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -398,27 +508,70 @@ export default function ProgressReports() {
           </CardContent>
         </Card>
 
-        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <Dialog open={showDialog} onOpenChange={handleDialogOpenChange}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Progress Report</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Select Student *</label>
+
+                  {/* Search Bar for Create */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search students..."
+                      value={createSearchQuery}
+                      onChange={(e) => setCreateSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  {/* Helper text */}
+                  {createSearchQuery.trim().length > 0 && createSearchQuery.trim().length < 2 && (
+                    <p className="text-xs text-muted-foreground">
+                      Type at least 2 characters to search
+                    </p>
+                  )}
+
+                  {/* Student Dropdown */}
                   <Select value={selectedStudent} onValueChange={setSelectedStudent}>
                     <SelectTrigger>
                       <SelectValue placeholder="Choose a student..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {students.map((student) => (
-                        <SelectItem key={student.id} value={student.id}>
-                          {student.firstName} {student.lastName}
-                        </SelectItem>
-                      ))}
+                      {filteredStudentsForCreate.length === 0 ? (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          {createSearchQuery.trim().length >= 2
+                            ? 'No students found'
+                            : 'No students available'}
+                        </div>
+                      ) : (
+                        filteredStudentsForCreate.map((student) => (
+                          <SelectItem key={student.id} value={student.id}>
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">
+                                {student.firstName} {student.lastName}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                Age: {calculateAge(student.dateOfBirth)} years
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
+
+                  {/* Results count */}
+                  {createSearchQuery.trim().length >= 2 && filteredStudentsForCreate.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Found {filteredStudentsForCreate.length} student{filteredStudentsForCreate.length !== 1 ? 's' : ''}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium">Reporting Period *</label>

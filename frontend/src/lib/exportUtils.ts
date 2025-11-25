@@ -333,7 +333,7 @@ export const exportSKReportToPDF = (report: any) => {
 
 export const exportSKReportToExcel = (report: any) => {
   const workbook = XLSX.utils.book_new();
-  
+
   const summaryData = [
     ['Metric', 'Value'],
     ['Total Events', report.summary?.totalEvents || 0],
@@ -345,7 +345,7 @@ export const exportSKReportToExcel = (report: any) => {
   ];
   const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
-  
+
   // Events by Status
   if (report.events?.byStatus?.length > 0) {
     const statusData = report.events.byStatus.map((item: any) => ({
@@ -355,7 +355,7 @@ export const exportSKReportToExcel = (report: any) => {
     const statusSheet = XLSX.utils.json_to_sheet(statusData);
     XLSX.utils.book_append_sheet(workbook, statusSheet, 'Events by Status');
   }
-  
+
   // Events by Category
   if (report.events?.byCategory?.length > 0) {
     const categoryData = report.events.byCategory.map((item: any) => ({
@@ -365,7 +365,7 @@ export const exportSKReportToExcel = (report: any) => {
     const categorySheet = XLSX.utils.json_to_sheet(categoryData);
     XLSX.utils.book_append_sheet(workbook, categorySheet, 'Events by Category');
   }
-  
+
   // Top Events
   if (report.participation?.topEvents?.length > 0) {
     const topEventsData = report.participation.topEvents.map((item: any) => ({
@@ -376,8 +376,161 @@ export const exportSKReportToExcel = (report: any) => {
     const topEventsSheet = XLSX.utils.json_to_sheet(topEventsData);
     XLSX.utils.book_append_sheet(workbook, topEventsSheet, 'Top Events');
   }
-  
+
   const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
   const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   saveAs(blob, `sk-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+};
+
+// Event Attendee List Export
+interface EventAttendeeData {
+  eventTitle: string;
+  eventDate: string;
+  eventCategory?: string;
+  eventLocation: string;
+  attendees: Array<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    contactNumber?: string;
+    attendedAt: string;
+    remarks?: string;
+  }>;
+}
+
+export const exportEventAttendeesToPDF = (data: EventAttendeeData) => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // Barangay Header
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('BARANGAY MANAGEMENT SYSTEM', pageWidth / 2, 15, { align: 'center' });
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('TheyCare Portal - SK Event Management', pageWidth / 2, 22, { align: 'center' });
+
+  // Horizontal line
+  doc.setLineWidth(0.5);
+  doc.line(20, 26, pageWidth - 20, 26);
+
+  // Document Title
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('EVENT ATTENDANCE LIST', pageWidth / 2, 35, { align: 'center' });
+
+  // Event Information Section
+  let currentY = 45;
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Event Information:', 20, currentY);
+
+  currentY += 7;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+
+  // Event Title
+  doc.setFont('helvetica', 'bold');
+  doc.text('Event Name:', 20, currentY);
+  doc.setFont('helvetica', 'normal');
+  doc.text(data.eventTitle, 55, currentY);
+
+  currentY += 6;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Date:', 20, currentY);
+  doc.setFont('helvetica', 'normal');
+  doc.text(new Date(data.eventDate).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }), 55, currentY);
+
+  if (data.eventCategory) {
+    currentY += 6;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Category:', 20, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(data.eventCategory, 55, currentY);
+  }
+
+  currentY += 6;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Location:', 20, currentY);
+  doc.setFont('helvetica', 'normal');
+  doc.text(data.eventLocation, 55, currentY);
+
+  currentY += 6;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Total Attendees:', 20, currentY);
+  doc.setFont('helvetica', 'normal');
+  doc.text(String(data.attendees.length), 55, currentY);
+
+  // Export timestamp
+  currentY += 6;
+  doc.setFontSize(9);
+  doc.setTextColor(100);
+  doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, currentY);
+  doc.setTextColor(0);
+
+  // Attendee Table
+  currentY += 8;
+
+  const tableData = data.attendees.map((attendee, index) => [
+    String(index + 1),
+    `${attendee.firstName} ${attendee.lastName}`,
+    attendee.email,
+    attendee.contactNumber || 'N/A',
+    new Date(attendee.attendedAt).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  ]);
+
+  autoTable(doc, {
+    head: [['#', 'Full Name', 'Email', 'Contact Number', 'Attendance Time']],
+    body: tableData,
+    startY: currentY,
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+    },
+    headStyles: {
+      fillColor: [41, 128, 185],
+      textColor: 255,
+      fontStyle: 'bold',
+      halign: 'center'
+    },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 15 },
+      1: { cellWidth: 45 },
+      2: { cellWidth: 50 },
+      3: { cellWidth: 35 },
+      4: { cellWidth: 40 }
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245],
+    },
+    margin: { left: 20, right: 20 },
+  });
+
+  // Footer
+  const finalY = (doc as any).lastAutoTable.finalY || currentY + 50;
+  const footerY = doc.internal.pageSize.getHeight() - 20;
+
+  doc.setFontSize(8);
+  doc.setTextColor(100);
+  doc.text('This is a system-generated document.', pageWidth / 2, footerY, { align: 'center' });
+  doc.text('TheyCare Portal - Barangay Management System', pageWidth / 2, footerY + 4, { align: 'center' });
+
+  // Generate filename in format: EventName_Attendees_YYYYMMDD.pdf
+  const eventName = data.eventTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+  const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+  const filename = `${eventName}_Attendees_${dateStr}.pdf`;
+
+  doc.save(filename);
 };

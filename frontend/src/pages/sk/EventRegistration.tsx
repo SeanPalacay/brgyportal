@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Calendar, Users, Clock, MapPin, Search, Filter, UserCheck, UserX, Eye, RefreshCw } from 'lucide-react';
+import { Calendar, Users, Clock, MapPin, Search, Filter, UserCheck, UserX, Eye, RefreshCw, Check } from 'lucide-react';
 
 interface Event {
   id: string;
@@ -464,9 +464,13 @@ export default function EventRegistration() {
                           </p>
                         )}
                         {isRegistered ? (
-                          <Badge variant="default" className="w-full justify-center">
+                          <Button
+                            className="w-full bg-green-600 hover:bg-green-600 text-white cursor-not-allowed opacity-80"
+                            disabled={true}
+                          >
+                            <Check className="h-4 w-4 mr-2" />
                             Already Registered
-                          </Badge>
+                          </Button>
                         ) : (
                           <Button
                             className="w-full"
