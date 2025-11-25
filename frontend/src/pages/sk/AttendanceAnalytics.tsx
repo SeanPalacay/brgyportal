@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '@/lib/api';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
   Calendar,
@@ -20,8 +21,11 @@ import {
   UserCheck,
   Filter,
   BarChart3,
-  AlertCircle
+  AlertCircle,
+  Search,
+  FileDown
 } from 'lucide-react';
+import { exportEventAttendeesToPDF } from '@/lib/exportUtils';
 
 interface Event {
   id: string;
@@ -31,6 +35,7 @@ interface Event {
   startTime: string;
   endTime?: string;
   location?: string;
+  category?: string;
   maxParticipants?: number;
   status?: string;
 }
@@ -82,6 +87,7 @@ export default function AttendanceAnalytics() {
   const [selectedEvent, setSelectedEvent] = useState('');
   const [showMarkDialog, setShowMarkDialog] = useState(false);
   const [registeredUsers, setRegisteredUsers] = useState<Registration[]>([]);
+  const [participantSearchQuery, setParticipantSearchQuery] = useState('');
   const [markFormData, setMarkFormData] = useState({
     userId: '',
     remarks: ''
@@ -236,6 +242,36 @@ export default function AttendanceAnalytics() {
     return timeString;
   };
 
+  const handleExportAttendees = () => {
+    if (!selectedEvent || !selectedEventData) {
+      toast.error('Please select an event first');
+      return;
+    }
+
+    if (attendanceRecords.length === 0) {
+      toast.error('No attendance records to export for this event');
+      return;
+    }
+
+    const exportData = {
+      eventTitle: selectedEventData.title,
+      eventDate: selectedEventData.eventDate,
+      eventCategory: selectedEventData.category,
+      eventLocation: selectedEventData.location || '',
+      attendees: attendanceRecords.map(record => ({
+        firstName: record.user?.firstName || '',
+        lastName: record.user?.lastName || '',
+        email: record.user?.email || '',
+        contactNumber: '',
+        attendedAt: record.attendedAt,
+        remarks: record.remarks
+      }))
+    };
+
+    exportEventAttendeesToPDF(exportData);
+    toast.success('Attendee list exported successfully!');
+  };
+
   const overallStats = {
     totalEvents: eventStats.length,
     totalAttendees: eventStats.reduce((sum, e) => sum + e.totalAttendees, 0),
@@ -253,6 +289,21 @@ export default function AttendanceAnalytics() {
   const availableUsers = registeredUsers.filter(reg =>
     !attendanceRecords.some(att => att.userId === reg.userId)
   );
+
+  // Filter participants based on search query (min 2 characters)
+  const filteredParticipants = useMemo(() => {
+    // If search query is empty or less than 2 characters, return all available users
+    if (participantSearchQuery.trim().length < 2) {
+      return availableUsers;
+    }
+
+    const query = participantSearchQuery.toLowerCase().trim();
+    return availableUsers.filter(reg => {
+      const fullName = `${reg.user.firstName} ${reg.user.lastName}`.toLowerCase();
+      const email = reg.user.email.toLowerCase();
+      return fullName.includes(query) || email.includes(query);
+    });
+  }, [availableUsers, participantSearchQuery]);
 
   return (
     <DashboardLayout currentPage="/sk/attendance">
@@ -418,10 +469,18 @@ export default function AttendanceAnalytics() {
                       </Badge>
                     )}
                   </div>
-                  <Button onClick={() => setShowMarkDialog(true)} size="default">
-                    <UserCheck className="mr-2 h-4 w-4" />
-                    Mark Attendance
-                  </Button>
+                  <div className="flex gap-2">
+                    {attendanceRecords.length > 0 && (
+                      <Button onClick={handleExportAttendees} variant="outline" size="default">
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Export Attendees
+                      </Button>
+                    )}
+                    <Button onClick={() => setShowMarkDialog(true)} size="default">
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      Mark Attendance
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -581,11 +640,32 @@ export default function AttendanceAnalytics() {
             )}
 
             <form onSubmit={handleMarkAttendance} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium flex items-center gap-2 mb-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   Select Participant *
                 </label>
+
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={participantSearchQuery}
+                    onChange={(e) => setParticipantSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {/* Helper text */}
+                {participantSearchQuery.trim().length > 0 && participantSearchQuery.trim().length < 2 && (
+                  <p className="text-xs text-muted-foreground">
+                    Type at least 2 characters to search
+                  </p>
+                )}
+
+                {/* Participant Dropdown */}
                 <Select
                   value={markFormData.userId}
                   onValueChange={(value) => setMarkFormData({...markFormData, userId: value})}
@@ -600,21 +680,35 @@ export default function AttendanceAnalytics() {
                           ? 'No approved registrations yet'
                           : 'All participants already marked'}
                       </div>
+                    ) : filteredParticipants.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        {participantSearchQuery.trim().length >= 2
+                          ? 'No results found'
+                          : 'No available participants'}
+                      </div>
                     ) : (
-                      availableUsers.map((registration) => (
+                      filteredParticipants.map((registration) => (
                         <SelectItem key={registration.userId} value={registration.userId}>
-                          {`${registration.user.firstName} ${registration.user.lastName}`}
-                          <span className="text-muted-foreground text-xs ml-2">
-                            ({registration.user.email})
-                          </span>
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">
+                              {`${registration.user.firstName} ${registration.user.lastName}`}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {registration.user.email}
+                            </span>
+                          </div>
                         </SelectItem>
                       ))
                     )}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {availableUsers.length} participant(s) available to mark
-                </p>
+
+                {/* Results count */}
+                {participantSearchQuery.trim().length >= 2 && filteredParticipants.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Found {filteredParticipants.length} participant{filteredParticipants.length !== 1 ? 's' : ''}
+                  </p>
+                )}
               </div>
 
               <div>

@@ -5,29 +5,54 @@ This feature adds a searchable participant dropdown to the SK Event Attendance T
 
 ## Implementation Summary
 
-### File Modified
-**`frontend/src/pages/sk/EventDetails.tsx`**
+### Files Modified
+
+#### 1. **`frontend/src/pages/sk/EventDetails.tsx`**
+Event-specific attendance marking with participant search.
 
 **Changes Made:**
-1. **Imports** (Lines 1-14):
+1. **Imports**:
    - Added `useMemo` from React for efficient filtering
    - Added `Search` icon from lucide-react
    - Added `Input` component from UI library
 
-2. **State Management** (Line 52):
+2. **State Management**:
    - Added `participantSearchQuery` state for search input
 
-3. **Filtering Logic** (Lines 151-180):
+3. **Filtering Logic**:
    - `availableParticipants` - Memoized list of participants who haven't attended yet
    - `filteredParticipants` - Memoized filtered list based on search query
    - `handleDialogOpenChange` - Resets search and form when dialog closes
 
-4. **UI Updates** (Lines 466-559):
+4. **UI Updates**:
    - Added search input with magnifying glass icon
    - Enhanced dropdown items to show name and email
    - Added helper text and result counts
    - Added "No results found" state
    - Improved dialog width for better visibility
+
+#### 2. **`frontend/src/pages/sk/AttendanceAnalytics.tsx`**
+Overall attendance analytics with bulk attendance marking capability.
+
+**Changes Made:**
+1. **Imports**:
+   - Added `useMemo` from React for efficient filtering
+   - Added `Search` icon from lucide-react
+   - Added `Input` component from UI library
+
+2. **State Management**:
+   - Added `participantSearchQuery` state for search input
+
+3. **Filtering Logic**:
+   - `availableUsers` - Filters out users who already have attendance marked
+   - `filteredParticipants` - Memoized filtered list based on search query (min 2 characters)
+
+4. **UI Updates (Mark Attendance Dialog)**:
+   - Added search input above participant dropdown
+   - Enhanced dropdown items with two-line layout (name + email)
+   - Added helper text for minimum character requirement
+   - Added results count display
+   - Added "No results found" empty state
 
 ## Search Implementation Details
 
@@ -610,9 +635,46 @@ Potential improvements for future iterations:
    - Export current search results to CSV
    - Print filtered participant list
 
+## Pages Using This Feature
+
+### 1. Event Details Page (`/sk/events/:id`)
+**File**: `frontend/src/pages/sk/EventDetails.tsx`
+
+**Access**: SK Engagement → Event Management → Click on specific event
+
+**Purpose**: Event-specific attendance tracking with full event details
+
+**Features**:
+- View event details (date, time, location, category)
+- See all approved participants
+- Mark individual attendance with search
+- View attendance records with timestamps
+- Export attendee list to PDF
+- Remove attendance records
+
+**Use Case**: SK officials managing a specific event
+
+### 2. Attendance Analytics Page (`/sk/attendance`)
+**File**: `frontend/src/pages/sk/AttendanceAnalytics.tsx`
+
+**Access**: SK Engagement → Attendance Analytics
+
+**Purpose**: Centralized attendance tracking across all events
+
+**Features**:
+- Overall statistics (total events, registrations, attendees, avg attendance rate)
+- Event statistics table with attendance rates
+- Event selector dropdown to switch between events
+- Mark attendance for selected event with search
+- View detailed attendance records per event
+
+**Use Case**: SK officials tracking attendance across multiple events from one dashboard
+
 ## Related Files
 
-- **Component**: `frontend/src/pages/sk/EventDetails.tsx`
+- **Components**:
+  - `frontend/src/pages/sk/EventDetails.tsx`
+  - `frontend/src/pages/sk/AttendanceAnalytics.tsx`
 - **UI Components**:
   - `frontend/src/components/ui/input.tsx`
   - `frontend/src/components/ui/select.tsx`

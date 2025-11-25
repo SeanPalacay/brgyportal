@@ -11,8 +11,9 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Calendar, Clock, MapPin, Users, Eye, Trash2, Play, X, Plus, Filter, Search, Edit } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Eye, Trash2, Play, X, Plus, Filter, Search, Edit, FileDown } from 'lucide-react';
 import type { Event } from '@/types/index';
+import { exportEventAttendeesToPDF } from '@/lib/exportUtils';
 
 export default function EventManagement() {
   const navigate = useNavigate();
@@ -246,6 +247,39 @@ export default function EventManagement() {
         const message = error?.response?.data?.error || 'Failed to delete event';
         toast.error(message);
       }
+    }
+  };
+
+  const handleExportAttendees = async (event: Event) => {
+    try {
+      const response = await api.get(`/events/${event.id}/attendance`);
+      const attendance = response.data.attendance || [];
+
+      if (attendance.length === 0) {
+        toast.error('No attendance records to export for this event');
+        return;
+      }
+
+      const exportData = {
+        eventTitle: event.title,
+        eventDate: event.eventDate,
+        eventCategory: event.category,
+        eventLocation: event.location,
+        attendees: attendance.map((record: any) => ({
+          firstName: record.user?.firstName || '',
+          lastName: record.user?.lastName || '',
+          email: record.user?.email || '',
+          contactNumber: record.user?.contactNumber,
+          attendedAt: record.attendedAt,
+          remarks: record.remarks
+        }))
+      };
+
+      exportEventAttendeesToPDF(exportData);
+      toast.success('Attendee list exported successfully!');
+    } catch (error) {
+      console.error('Failed to export attendees:', error);
+      toast.error('Failed to export attendee list');
     }
   };
 
@@ -505,6 +539,10 @@ export default function EventManagement() {
                       <Button size="sm" variant="outline" onClick={() => navigate(`/sk/events/${event.id}`)} className="flex-1 min-w-fit">
                         <Eye className="h-3 w-3 mr-1" />
                         View
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleExportAttendees(event)} className="flex-1 min-w-fit">
+                        <FileDown className="h-3 w-3 mr-1" />
+                        Export
                       </Button>
                       {(event.status === 'DRAFT' || event.status === 'PUBLISHED') && (
                         <Button size="sm" variant="outline" onClick={() => handleEditClick(event)} className="flex-1 min-w-fit">
