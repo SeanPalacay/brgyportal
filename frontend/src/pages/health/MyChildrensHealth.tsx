@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
@@ -54,11 +55,47 @@ interface ImmunizationRecord {
   notes?: string;
 }
 
+interface ImmunizationCard {
+  id: string;
+  patientId: string;
+  patient?: Patient;
+  cardData: {
+    childInformation: {
+      name: string;
+      motherName: string;
+      fatherName: string;
+      dateOfBirth: string;
+      placeOfBirth: string;
+      birthWeight: number | null;
+      birthHeight: number | null;
+      sex: string;
+      address: string;
+      barangay: string;
+      familyNumber: string;
+    };
+    vaccinationSchedule: Array<{
+      vaccine: string;
+      doses: Array<{
+        number: number;
+        timing: string;
+        dueDate: string;
+        dateGiven: string | null;
+        remarks: string | null;
+      }>;
+    }>;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function MyChildrensHealth() {
   const { user } = useAuth();
   const [children, setChildren] = useState<Patient[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string>('all');
   const [immunizationRecords, setImmunizationRecords] = useState<ImmunizationRecord[]>([]);
+  const [immunizationCards, setImmunizationCards] = useState<ImmunizationCard[]>([]);
+  const [selectedCard, setSelectedCard] = useState<ImmunizationCard | null>(null);
+  const [showCardModal, setShowCardModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -94,6 +131,21 @@ export default function MyChildrensHealth() {
         });
 
         setImmunizationRecords(flatRecords);
+
+        // Fetch immunization cards for all children
+        const cardsPromises = myChildren.map((child: Patient) =>
+          api.get(`/health/immunization-cards?patientId=${child.id}`)
+            .then(res => res.data.cards || [])
+            .catch(() => [])
+        );
+
+        const allCards = await Promise.all(cardsPromises);
+        const flatCards = allCards.flat().map((card: ImmunizationCard) => {
+          const child = myChildren.find((c: Patient) => c.id === card.patientId);
+          return { ...card, patient: child };
+        });
+
+        setImmunizationCards(flatCards);
       }
     } catch (error) {
       console.error('Error fetching children health records:', error);
@@ -149,6 +201,42 @@ export default function MyChildrensHealth() {
       case 'scheduled':
         return <Calendar className="h-4 w-4 text-blue-600" />;
     }
+  };
+
+  // Immunization Card Helper Functions
+  const getDoseStatus = (dose: { dueDate: string; dateGiven: string | null }): 'completed' | 'pending' | 'overdue' => {
+    if (dose.dateGiven) return 'completed';
+    const today = new Date();
+    const dueDate = new Date(dose.dueDate);
+    return dueDate < today ? 'overdue' : 'pending';
+  };
+
+  const calculateCompletedDoses = (card: ImmunizationCard): number => {
+    return card.cardData.vaccinationSchedule.reduce((total, vaccine) => {
+      return total + vaccine.doses.filter(d => d.dateGiven).length;
+    }, 0);
+  };
+
+  const calculatePendingDoses = (card: ImmunizationCard): number => {
+    const today = new Date();
+    return card.cardData.vaccinationSchedule.reduce((total, vaccine) => {
+      return total + vaccine.doses.filter(d => !d.dateGiven && new Date(d.dueDate) >= today).length;
+    }, 0);
+  };
+
+  const calculateOverdueDoses = (card: ImmunizationCard): number => {
+    const today = new Date();
+    return card.cardData.vaccinationSchedule.reduce((total, vaccine) => {
+      return total + vaccine.doses.filter(d => !d.dateGiven && new Date(d.dueDate) < today).length;
+    }, 0);
+  };
+
+  const calculateCompletionPercentage = (card: ImmunizationCard): number => {
+    const totalDoses = card.cardData.vaccinationSchedule.reduce((total, vaccine) => {
+      return total + vaccine.doses.length;
+    }, 0);
+    const completedDoses = calculateCompletedDoses(card);
+    return totalDoses > 0 ? (completedDoses / totalDoses) * 100 : 0;
   };
 
   const handleDownloadCard = (childId: string) => {
@@ -390,10 +478,114 @@ export default function MyChildrensHealth() {
     }
   };
 
+  const handleDownloadVaccinationCard = (card: ImmunizationCard) => {
+    const cardHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Infant Immunization Card - ${card.cardData.childInformation.name}</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: #f8fafc; }
+            .card { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden; }
+            .header { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 24px; text-align: center; }
+            .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
+            .header p { margin: 8px 0 0 0; opacity: 0.9; font-size: 16px; }
+            .child-info { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; padding: 20px; background: #f9fafb; border-radius: 8px; }
+            .info-item { display: flex; flex-direction: column; gap: 4px; }
+            .info-label { font-weight: 500; color: #6b7280; font-size: 12px; }
+            .info-value { font-weight: 600; color: #111827; font-size: 14px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+            th { background: #f3f4f6; padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; font-size: 12px; }
+            td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 13px; }
+            .vaccine-name { font-weight: 600; color: #1f2937; }
+            .dose-given { background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+            .dose-pending { background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+            .dose-overdue { background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+            @media print { body { background: white; } .card { box-shadow: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="header">
+              <h1>👶 Infant Immunization Card</h1>
+              <p>Barangay Health Services - Vaccination Schedule</p>
+            </div>
+            <div style="padding: 32px;">
+              <h2 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">Child Information</h2>
+              <div class="child-info">
+                <div class="info-item"><span class="info-label">Full Name</span><span class="info-value">${card.cardData.childInformation.name}</span></div>
+                <div class="info-item"><span class="info-label">Date of Birth</span><span class="info-value">${new Date(card.cardData.childInformation.dateOfBirth).toLocaleDateString()}</span></div>
+                <div class="info-item"><span class="info-label">Sex</span><span class="info-value">${card.cardData.childInformation.sex}</span></div>
+                <div class="info-item"><span class="info-label">Mother's Name</span><span class="info-value">${card.cardData.childInformation.motherName || 'N/A'}</span></div>
+                <div class="info-item"><span class="info-label">Father's Name</span><span class="info-value">${card.cardData.childInformation.fatherName || 'N/A'}</span></div>
+                <div class="info-item"><span class="info-label">Birth Weight</span><span class="info-value">${card.cardData.childInformation.birthWeight ? card.cardData.childInformation.birthWeight + ' kg' : 'N/A'}</span></div>
+              </div>
+              <h2 style="margin: 24px 0 16px 0; color: #374151; font-size: 18px;">Vaccination Schedule</h2>
+              <table>
+                <thead><tr><th>Vaccine</th><th>Dose #</th><th>Schedule</th><th>Due Date</th><th>Date Given</th><th>Status</th><th>Remarks</th></tr></thead>
+                <tbody>
+                  ${card.cardData.vaccinationSchedule.map(vaccine =>
+                    vaccine.doses.map((dose, idx) => {
+                      const today = new Date();
+                      const dueDate = new Date(dose.dueDate);
+                      const isOverdue = !dose.dateGiven && dueDate < today;
+                      const statusClass = dose.dateGiven ? 'dose-given' : (isOverdue ? 'dose-overdue' : 'dose-pending');
+                      const statusLabel = dose.dateGiven ? 'Given' : (isOverdue ? 'Overdue' : 'Pending');
+                      return \`
+                        <tr>
+                          \${idx === 0 ? \`<td rowspan="\${vaccine.doses.length}" class="vaccine-name">\${vaccine.vaccine}</td>\` : ''}
+                          <td>\${dose.number}</td>
+                          <td>\${dose.timing}</td>
+                          <td>\${new Date(dose.dueDate).toLocaleDateString()}</td>
+                          <td>\${dose.dateGiven ? new Date(dose.dateGiven).toLocaleDateString() : '-'}</td>
+                          <td><span class="\${statusClass}">\${statusLabel}</span></td>
+                          <td>\${dose.remarks || '-'}</td>
+                        </tr>
+                      \`;
+                    }).join('')
+                  ).join('')}
+                </tbody>
+              </table>
+              <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-top: 24px;">
+                <p style="margin: 0; color: #6b7280; font-size: 14px; text-align: center;">
+                  This immunization card is issued by Barangay Health Services for ${card.cardData.childInformation.name}
+                </p>
+                <p style="margin: 8px 0 0 0; color: #6b7280; font-size: 12px; text-align: center;">
+                  Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | Guardian: ${user?.firstName} ${user?.lastName}
+                </p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(cardHtml);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    } else {
+      toast.error('Unable to open print window. Please check your popup blocker.');
+    }
+  };
+
+  const handleViewCardDetails = (card: ImmunizationCard) => {
+    setSelectedCard(card);
+    setShowCardModal(true);
+  };
+
   // Filter records by selected child
   const filteredRecords = selectedChildId === 'all'
     ? immunizationRecords
     : immunizationRecords.filter(r => r.patientId === selectedChildId);
+
+  // Filter cards by selected child
+  const filteredCards = selectedChildId === 'all'
+    ? immunizationCards
+    : immunizationCards.filter(c => c.patientId === selectedChildId);
 
   const selectedChild = selectedChildId === 'all' ? null : children.find(c => c.id === selectedChildId);
 
@@ -672,6 +864,77 @@ export default function MyChildrensHealth() {
           </CardContent>
         </Card>
 
+        {/* Immunization Cards Section */}
+        {filteredCards.length > 0 && (
+          <Card className="shadow-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <FileText className="h-6 w-6 text-primary" />
+                <div>
+                  <CardTitle className="text-xl">Infant Vaccination Schedule</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Complete immunization schedule cards with dose tracking
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {filteredCards.map((card) => (
+                  <Card key={card.id} className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      {/* Header with child name and buttons */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="font-semibold text-lg flex items-center gap-2">
+                            <Baby className="h-5 w-5 text-primary" />
+                            {card.cardData.childInformation.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Born: {new Date(card.cardData.childInformation.dateOfBirth).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleViewCardDetails(card)}>
+                            <Info className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleDownloadVaccinationCard(card)}>
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+
+                      <Separator className="my-4" />
+
+                      {/* Progress summary grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-3 bg-muted rounded-lg">
+                          <div className="text-2xl font-bold text-primary">{calculateCompletedDoses(card)}</div>
+                          <div className="text-xs text-muted-foreground">Doses Given</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted rounded-lg">
+                          <div className="text-2xl font-bold text-orange-600">{calculatePendingDoses(card)}</div>
+                          <div className="text-xs text-muted-foreground">Pending</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted rounded-lg">
+                          <div className="text-2xl font-bold text-red-600">{calculateOverdueDoses(card)}</div>
+                          <div className="text-xs text-muted-foreground">Overdue</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted rounded-lg">
+                          <div className="text-2xl font-bold">{Math.round(calculateCompletionPercentage(card))}%</div>
+                          <div className="text-xs text-muted-foreground">Complete</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Information Card */}
         <Card className="shadow-sm">
           <CardHeader>
@@ -747,6 +1010,107 @@ export default function MyChildrensHealth() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Immunization Card Details Modal */}
+      <Dialog open={showCardModal} onOpenChange={setShowCardModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Vaccination Schedule Details
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedCard && (
+            <div className="space-y-6">
+              {/* Child Information */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+                <div>
+                  <p className="text-sm text-muted-foreground">Child Name</p>
+                  <p className="font-semibold">{selectedCard.cardData.childInformation.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Date of Birth</p>
+                  <p className="font-semibold">
+                    {new Date(selectedCard.cardData.childInformation.dateOfBirth).toLocaleDateString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Mother's Name</p>
+                  <p className="font-semibold">{selectedCard.cardData.childInformation.motherName || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Father's Name</p>
+                  <p className="font-semibold">{selectedCard.cardData.childInformation.fatherName || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Birth Weight</p>
+                  <p className="font-semibold">
+                    {selectedCard.cardData.childInformation.birthWeight
+                      ? `${selectedCard.cardData.childInformation.birthWeight} kg`
+                      : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Place of Birth</p>
+                  <p className="font-semibold">{selectedCard.cardData.childInformation.placeOfBirth || 'N/A'}</p>
+                </div>
+              </div>
+
+              {/* Vaccination Schedule */}
+              <div className="space-y-4">
+                {selectedCard.cardData.vaccinationSchedule.map((vaccine, vIdx) => (
+                  <Card key={vIdx}>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Syringe className="h-4 w-4" />
+                        {vaccine.vaccine}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Dose</TableHead>
+                            <TableHead>Schedule</TableHead>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead>Date Given</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Remarks</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {vaccine.doses.map((dose, dIdx) => {
+                            const status = getDoseStatus(dose);
+                            const statusBadgeVariant = status === 'completed' ? 'default' : status === 'overdue' ? 'destructive' : 'secondary';
+                            const statusLabel = status === 'completed' ? 'Given' : status === 'overdue' ? 'Overdue' : 'Pending';
+                            return (
+                              <TableRow key={dIdx}>
+                                <TableCell>#{dose.number}</TableCell>
+                                <TableCell>{dose.timing}</TableCell>
+                                <TableCell>{new Date(dose.dueDate).toLocaleDateString()}</TableCell>
+                                <TableCell>
+                                  {dose.dateGiven ? new Date(dose.dateGiven).toLocaleDateString() : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={statusBadgeVariant}>{statusLabel}</Badge>
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {dose.remarks || '-'}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
