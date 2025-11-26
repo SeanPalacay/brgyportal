@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Patient } from '@/types';
-import { AlertTriangle, CheckCircle, Clock, Eye, Edit3 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Eye, Edit3, Search } from 'lucide-react';
 
 interface ImmunizationCard {
   id: string;
@@ -61,6 +61,7 @@ export default function HealthRecords() {
   const [showDialog, setShowDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState('');
+  const [patientSearchQuery, setPatientSearchQuery] = useState('');
   const [filterPatient, setFilterPatient] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedRecord, setSelectedRecord] = useState<ImmunizationRecord | null>(null);
@@ -620,7 +621,13 @@ export default function HealthRecords() {
         </Dialog>
 
         {isHealthWorker && (
-          <Dialog open={showDialog} onOpenChange={setShowDialog}>
+          <Dialog open={showDialog} onOpenChange={(open) => {
+            setShowDialog(open);
+            if (!open) {
+              setPatientSearchQuery('');
+              setSelectedPatient('');
+            }
+          }}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Immunization Record</DialogTitle>
@@ -628,18 +635,54 @@ export default function HealthRecords() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Select Patient *</label>
-                <Select value={selectedPatient} onValueChange={setSelectedPatient}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a patient..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {patients.map((patient) => (
-                      <SelectItem key={patient.id} value={patient.id}>
-                        {patient.firstName} {patient.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search patient by name..."
+                      value={patientSearchQuery}
+                      onChange={(e) => setPatientSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Select value={selectedPatient} onValueChange={setSelectedPatient}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a patient..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {patients
+                        .filter((patient) => {
+                          const searchLower = patientSearchQuery.toLowerCase();
+                          const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
+                          return fullName.includes(searchLower);
+                        })
+                        .map((patient) => (
+                          <SelectItem key={patient.id} value={patient.id}>
+                            {patient.firstName} {patient.lastName}
+                          </SelectItem>
+                        ))}
+                      {patients.filter((patient) => {
+                        const searchLower = patientSearchQuery.toLowerCase();
+                        const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
+                        return fullName.includes(searchLower);
+                      }).length === 0 && (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          No patients found
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {patientSearchQuery && (
+                    <p className="text-xs text-muted-foreground">
+                      Showing {patients.filter((patient) => {
+                        const searchLower = patientSearchQuery.toLowerCase();
+                        const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
+                        return fullName.includes(searchLower);
+                      }).length} of {patients.length} patients
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
