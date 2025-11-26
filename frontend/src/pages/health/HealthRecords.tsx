@@ -201,12 +201,23 @@ export default function HealthRecords() {
     }
   };
 
-  const updateDoseField = (vaccineIdx: number, doseIdx: number, field: 'dateGiven' | 'remarks', value: string) => {
+  const updateDoseField = (vaccineIdx: number, doseIdx: number, field: 'dateGiven' | 'remarks' | 'dueDate', value: string) => {
     setCardDraft((prev) => {
       if (!prev) return prev;
       const next = structuredClone(prev);
       const dose = next.cardData.vaccinationSchedule[vaccineIdx].doses[doseIdx];
-      dose[field] = value || null;
+      dose[field] = value || undefined;
+      return next;
+    });
+  };
+
+  const updateChildInfo = (field: string, value: string) => {
+    setCardDraft((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      if (next.cardData.childInformation) {
+        next.cardData.childInformation[field] = value;
+      }
       return next;
     });
   };
@@ -530,15 +541,107 @@ export default function HealthRecords() {
                       {cardDraft.patient?.firstName} {cardDraft.patient?.lastName}
                     </div>
                     <div className="text-sm text-muted-foreground">Family #{cardDraft.cardData.childInformation?.familyNumber}</div>
-                    <div className="text-xs text-muted-foreground grid grid-cols-2 gap-1 bg-slate-50 dark:bg-slate-900/50 p-2 rounded">
-                      <span><strong>DOB:</strong> {cardDraft.cardData.childInformation?.dateOfBirth}</span>
-                      <span><strong>Place:</strong> {cardDraft.cardData.childInformation?.placeOfBirth || '—'}</span>
-                      <span><strong>Mother:</strong> {cardDraft.cardData.childInformation?.motherName || '—'}</span>
-                      <span><strong>Father:</strong> {cardDraft.cardData.childInformation?.fatherName || '—'}</span>
-                      <span><strong>Address:</strong> {cardDraft.cardData.childInformation?.address || '—'}</span>
-                      <span><strong>Barangay:</strong> {cardDraft.cardData.childInformation?.barangay || '—'}</span>
-                      <span><strong>Birth Wt:</strong> {cardDraft.cardData.childInformation?.birthWeight ?? '—'}</span>
-                      <span><strong>Birth Ht:</strong> {cardDraft.cardData.childInformation?.birthHeight ?? '—'}</span>
+                    <div className="text-xs text-muted-foreground bg-slate-50 dark:bg-slate-900/50 p-2 rounded">
+                      {isAdmin ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs font-medium">Name</Label>
+                            <Input
+                              value={cardDraft.cardData.childInformation?.name || ''}
+                              onChange={(e) => updateChildInfo('name', e.target.value)}
+                              className="h-6 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">DOB</Label>
+                            <Input
+                              type="date"
+                              value={cardDraft.cardData.childInformation?.dateOfBirth || ''}
+                              onChange={(e) => updateChildInfo('dateOfBirth', e.target.value)}
+                              className="h-6 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Place of Birth</Label>
+                            <Input
+                              value={cardDraft.cardData.childInformation?.placeOfBirth || ''}
+                              onChange={(e) => updateChildInfo('placeOfBirth', e.target.value)}
+                              className="h-6 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Mother</Label>
+                            <Input
+                              value={cardDraft.cardData.childInformation?.motherName || ''}
+                              onChange={(e) => updateChildInfo('motherName', e.target.value)}
+                              className="h-6 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Father</Label>
+                            <Input
+                              value={cardDraft.cardData.childInformation?.fatherName || ''}
+                              onChange={(e) => updateChildInfo('fatherName', e.target.value)}
+                              className="h-6 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Address</Label>
+                            <Input
+                              value={cardDraft.cardData.childInformation?.address || ''}
+                              onChange={(e) => updateChildInfo('address', e.target.value)}
+                              className="h-6 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Barangay</Label>
+                            <Input
+                              value={cardDraft.cardData.childInformation?.barangay || ''}
+                              onChange={(e) => updateChildInfo('barangay', e.target.value)}
+                              className="h-6 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Birth Weight</Label>
+                            <Input
+                              value={cardDraft.cardData.childInformation?.birthWeight || ''}
+                              onChange={(e) => updateChildInfo('birthWeight', e.target.value)}
+                              className="h-6 text-xs"
+                              placeholder="e.g., 3.2 kg"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Birth Height</Label>
+                            <Input
+                              value={cardDraft.cardData.childInformation?.birthHeight || ''}
+                              onChange={(e) => updateChildInfo('birthHeight', e.target.value)}
+                              className="h-6 text-xs"
+                              placeholder="e.g., 50 cm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Family Number</Label>
+                            <Input
+                              value={cardDraft.cardData.childInformation?.familyNumber || ''}
+                              onChange={(e) => updateChildInfo('familyNumber', e.target.value)}
+                              className="h-6 text-xs"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-1">
+                          <span><strong>Name:</strong> {cardDraft.cardData.childInformation?.name}</span>
+                          <span><strong>DOB:</strong> {cardDraft.cardData.childInformation?.dateOfBirth}</span>
+                          <span><strong>Place:</strong> {cardDraft.cardData.childInformation?.placeOfBirth || '—'}</span>
+                          <span><strong>Mother:</strong> {cardDraft.cardData.childInformation?.motherName || '—'}</span>
+                          <span><strong>Father:</strong> {cardDraft.cardData.childInformation?.fatherName || '—'}</span>
+                          <span><strong>Address:</strong> {cardDraft.cardData.childInformation?.address || '—'}</span>
+                          <span><strong>Barangay:</strong> {cardDraft.cardData.childInformation?.barangay || '—'}</span>
+                          <span><strong>Birth Wt:</strong> {cardDraft.cardData.childInformation?.birthWeight ?? '—'}</span>
+                          <span><strong>Birth Ht:</strong> {cardDraft.cardData.childInformation?.birthHeight ?? '—'}</span>
+                          <span><strong>Family #:</strong> {cardDraft.cardData.childInformation?.familyNumber ?? '—'}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <Badge variant="secondary">
@@ -563,29 +666,51 @@ export default function HealthRecords() {
                                 <StatusIcon status={status} />
                                 Dose {dose.number} ({dose.timing})
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                Due {dose.dueDate ? new Date(dueDateSafe(dose.dueDate)).toLocaleDateString() : '—'}
-                              </div>
-                              <div className="flex-1 min-w-[200px]">
+                              <div className="flex-1 min-w-[150px]">
                                 {isAdmin ? (
-                                  <Input
-                                    type="date"
-                                    value={dose.dateGiven || ''}
-                                    onChange={(e) => updateDoseField(vIdx, dIdx, 'dateGiven', e.target.value)}
-                                  />
+                                  <div>
+                                    <Label className="text-xs font-medium">Due Date</Label>
+                                    <Input
+                                      type="date"
+                                      value={dose.dueDate || ''}
+                                      onChange={(e) => updateDoseField(vIdx, dIdx, 'dueDate', e.target.value)}
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-muted-foreground">
+                                    Due {dose.dueDate ? new Date(dueDateSafe(dose.dueDate)).toLocaleDateString() : '—'}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-[150px]">
+                                {isAdmin ? (
+                                  <div>
+                                    <Label className="text-xs font-medium">Date Given</Label>
+                                    <Input
+                                      type="date"
+                                      value={dose.dateGiven || ''}
+                                      onChange={(e) => updateDoseField(vIdx, dIdx, 'dateGiven', e.target.value)}
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
                                 ) : (
                                   <span className="text-sm">
                                     {dose.dateGiven ? new Date(dose.dateGiven).toLocaleDateString() : 'Not given'}
                                   </span>
                                 )}
                               </div>
-                              <div className="flex-1 min-w-[200px]">
+                              <div className="flex-1 min-w-[150px]">
                                 {isAdmin ? (
-                                  <Input
-                                    placeholder="Remarks"
-                                    value={dose.remarks || ''}
-                                    onChange={(e) => updateDoseField(vIdx, dIdx, 'remarks', e.target.value)}
-                                  />
+                                  <div>
+                                    <Label className="text-xs font-medium">Remarks</Label>
+                                    <Input
+                                      placeholder="Remarks"
+                                      value={dose.remarks || ''}
+                                      onChange={(e) => updateDoseField(vIdx, dIdx, 'remarks', e.target.value)}
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
                                 ) : (
                                   <span className="text-sm text-muted-foreground">
                                     {dose.remarks || 'No remarks'}
