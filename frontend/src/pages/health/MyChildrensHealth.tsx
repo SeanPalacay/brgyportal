@@ -531,17 +531,17 @@ export default function MyChildrensHealth() {
                       const isOverdue = !dose.dateGiven && dueDate < today;
                       const statusClass = dose.dateGiven ? 'dose-given' : (isOverdue ? 'dose-overdue' : 'dose-pending');
                       const statusLabel = dose.dateGiven ? 'Given' : (isOverdue ? 'Overdue' : 'Pending');
-                      return \`
+                      return `
                         <tr>
-                          \${idx === 0 ? \`<td rowspan="\${vaccine.doses.length}" class="vaccine-name">\${vaccine.vaccine}</td>\` : ''}
-                          <td>\${dose.number}</td>
-                          <td>\${dose.timing}</td>
-                          <td>\${new Date(dose.dueDate).toLocaleDateString()}</td>
-                          <td>\${dose.dateGiven ? new Date(dose.dateGiven).toLocaleDateString() : '-'}</td>
-                          <td><span class="\${statusClass}">\${statusLabel}</span></td>
-                          <td>\${dose.remarks || '-'}</td>
+                          ${idx === 0 ? `<td rowspan="${vaccine.doses.length}" class="vaccine-name">${vaccine.vaccine}</td>` : ''}
+                          <td>${dose.number}</td>
+                          <td>${dose.timing}</td>
+                          <td>${new Date(dose.dueDate).toLocaleDateString()}</td>
+                          <td>${dose.dateGiven ? new Date(dose.dateGiven).toLocaleDateString() : '-'}</td>
+                          <td><span class="${statusClass}">${statusLabel}</span></td>
+                          <td>${dose.remarks || '-'}</td>
                         </tr>
-                      \`;
+                      `;
                     }).join('')
                   ).join('')}
                 </tbody>
