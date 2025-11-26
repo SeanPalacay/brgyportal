@@ -328,6 +328,20 @@ export default function PatientManagement() {
       fatherName: patient.fatherName || '',
       placeOfBirth: patient.placeOfBirth || ''
     });
+
+    // Check if patient has a guardian linked to a resident user
+    if (patient.guardianUserId) {
+      setGuardianIsResident(true);
+      // Find the guardian in the residents list
+      const guardian = residents.find(r => r.id === patient.guardianUserId);
+      if (guardian) {
+        setSelectedGuardian(guardian);
+      }
+    } else {
+      setGuardianIsResident(false);
+      setSelectedGuardian(null);
+    }
+
     setShowAddDialog(true);
   };
 
@@ -350,11 +364,20 @@ export default function PatientManagement() {
 
     try {
       // Prepare the update data - make sure to convert number fields back to numbers if needed
-      const updateData = {
+      const updateData: any = {
         ...formData,
         birthWeight: formData.birthWeight ? parseFloat(formData.birthWeight) : null,
         birthLength: formData.birthLength ? parseFloat(formData.birthLength) : null
       };
+
+      // Include guardianUserId if guardian is a resident
+      if (guardianIsResident && selectedGuardian) {
+        updateData.guardianUserId = selectedGuardian.id;
+        updateData.guardianName = `${selectedGuardian.firstName} ${selectedGuardian.lastName}`;
+      } else if (!guardianIsResident) {
+        // If switching from resident guardian to non-resident, clear guardianUserId
+        updateData.guardianUserId = null;
+      }
 
       const response = await api.put(`/health/patients/${selectedPatient.id}`, updateData);
 
